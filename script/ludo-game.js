@@ -22,20 +22,24 @@ let passAudio = new Audio("../music/pass-sound.mp3");
 let winAudio = new Audio("../music/win-sound.mp3");
 
 // Firebase configuration
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyAT0a7Bx54I_vXBVU4xUF7xr7dJd9o13Jc",
-    authDomain: "ludo-king-305fe.firebaseapp.com",
-    databaseURL: "https://ludo-king-305fe-default-rtdb.firebaseio.com",
-    projectId: "ludo-king-305fe",
-    storageBucket: "ludo-king-305fe.firebasestorage.app",
-    messagingSenderId: "896536185977",
-    appId: "1:896536185977:web:566a10a11c9bd3f2b918a8",
-    measurementId: "G-02733W6HCF"
+  apiKey: "AIzaSyBQ6Dh4ir1ucIv2TXAtDQELnNN5E2oxYfA",
+  authDomain: "attendance-atr.firebaseapp.com",
+  databaseURL: "https://attendance-atr-default-rtdb.firebaseio.com",
+  projectId: "attendance-atr",
+  storageBucket: "attendance-atr.firebasestorage.app",
+  messagingSenderId: "277739902206",
+  appId: "1:277739902206:web:88de2fcf263d64337ec1af"
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const app = initializeApp(firebaseConfig);
 
 // Object Declarations
 function Position(length) {
