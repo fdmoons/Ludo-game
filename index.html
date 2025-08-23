@@ -1,12 +1,14 @@
 <!-- v1.1 -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <title>Play Ludo Online</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta property="og:title" content="Play Ludo Online" />
-    <meta property="og:description" content="Ludo is a strategy board game for two to four players, in which the players race their four tokens from start to finish according to the rolls of a single die." />
+    <meta property="og:description"
+        content="Ludo is a strategy board game for two to four players, in which the players race their four tokens from start to finish according to the rolls of a single die." />
     <meta property="og:type" content="Website" />
     <meta property="og:url" content="https://playludoonline.netlify.app/" />
     <meta property="og:image" content="https://playludoonline.netlify.app/images/ludositepreview.jpg" />
@@ -16,6 +18,7 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
 </head>
+
 <body>
     <div id="home-container">
         <div id="home">
@@ -27,20 +30,22 @@
                     Play Ludo Online
                 </div>
             </div>
-            <div id="room-code-container">
-                <input type="text" id="roomCode" placeholder="Enter Room Code (e.g., 808580)">
-                <button id="joinRoom">Join Room</button>
-                <button id="createRoom">Create Room</button>
+            <div id="roomBox">
+                <input id="roomCode" type="text" placeholder="कोड डालें (जैसे 808580)" required>
+                <button id="connectBtn">कनेक्ट करें</button>
+                <div id="roomStatus" style="color: red; margin-top: 10px;"></div>
             </div>
             <div id="noOfplayerBox" style="display: none;">
                 <div id="twoPlayer" class="noOfPlayer">2P</div>
                 <div id="threePlayer" class="noOfPlayer">3P</div>
                 <div id="fourPlayer" class="noOfPlayer selected">4P</div>
+                <label><input type="checkbox" id="teamMode"> Team Mode (2 रंग प्रति प्लेयर)</label>
             </div>
             <button id="startGame" style="display: none;">Start</button>
         </div>
         <div id="owner">Made By <a href="https://github.com/vishalmishra090">Vishal Mishra</a></div>
     </div>
+
     <main>
         <div class="game-container">
             <div class="wrap-box">
@@ -59,6 +64,7 @@
                             <div class="diceBox greenDiceBox" id="greenDice"></div>
                         </div>
                     </div>
+
                     <div class="ludo-board row">
                         <div class="row row1">
                             <div id="wrap-in-area">
@@ -81,6 +87,7 @@
                                     </div>
                                 </div>
                             </div>
+
                             <div class="btw-g-r out-area col">
                                 <div class="row">
                                     <div class="col">
@@ -170,6 +177,7 @@
                                 </div>
                             </div>
                         </div>
+
                         <div class="row row2">
                             <div class="btw-r-b out-area col col1">
                                 <div class="row">
@@ -233,6 +241,7 @@
                                     </div>
                                 </div>
                             </div>
+
                             <div class="win-area col col2">
                                 <div class="win-box" id="win-box1">
                                     <div class="win-pawn-box" id="g-win-pawn-box"></div>
@@ -247,6 +256,7 @@
                                     <div class="win-pawn-box" id="r-win-pawn-box"></div>
                                 </div>
                             </div>
+
                             <div class="btw-y-g out-area col col3">
                                 <div class="row">
                                     <div class="col">
@@ -310,6 +320,7 @@
                                 </div>
                             </div>
                         </div>
+
                         <div class="row row3">
                             <div id="wrap-in-area">
                                 <div class="blue-zone in-area col" id="bPlayer">
@@ -421,6 +432,7 @@
                             </div>
                         </div>
                     </div>
+
                     <div class="dice-container dice-container-bottom row">
                         <div class="col1 col">
                             <div class="diceBox blueDiceBox" id="blueDice"></div>
@@ -461,28 +473,9 @@
         <img src="images/wood-Board.jpg" />
     </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script type="module">
-        // Firebase SDKs
-        // Import the functions you need from the SDKs you need
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyBQ6Dh4ir1ucIv2TXAtDQELnNN5E2oxYfA",
-  authDomain: "attendance-atr.firebaseapp.com",
-  databaseURL: "https://attendance-atr-default-rtdb.firebaseio.com",
-  projectId: "attendance-atr",
-  storageBucket: "attendance-atr.firebasestorage.app",
-  messagingSenderId: "277739902206",
-  appId: "1:277739902206:web:88de2fcf263d64337ec1af"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js"></script>
     <script src="script/ludo-game.js"></script>
 </body>
+
 </html>
