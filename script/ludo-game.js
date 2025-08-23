@@ -915,6 +915,41 @@ function openFullscreen() {
   $("#exitfullscreen").css("display", "inline-block");
 }
 
+function joinRoom() {
+  const code = $("#roomCode").val().trim();
+  if (!code) {
+    $("#roomStatus").text("कोड डालें!");
+    return;
+  }
+  console.log("Attempting to connect to room:", code); // डिबग लॉग
+  roomId = code;
+  myPlayerId = Math.random().toString(36).substring(2, 10);
+  console.log("My Player ID:", myPlayerId); // डिबग लॉग
+  db.ref(`rooms/${roomId}`).once('value', (snapshot) => {
+    console.log("Snapshot data:", snapshot.val()); // डिबग लॉग
+    let room = snapshot.val() || { players: [], gameState: {}, started: false };
+    if (room.players.length >= 4) {
+      $("#roomStatus").text("रूम फुल है!");
+      return;
+    }
+    room.players.push({ id: myPlayerId, colors: [] });
+    db.ref(`rooms/${roomId}`).set(room)
+      .then(() => {
+        console.log("Room data set successfully"); // डिबग लॉग
+        $("#roomStatus").text("कनेक्टेड! खिलाड़ियों का इंतज़ार...");
+      })
+      .catch((error) => {
+        console.error("Firebase set error:", error); // एरर लॉग
+        $("#roomStatus").text("एरर: कनेक्शन फेल! " + error.message);
+      });
+    // ... बाकी कोड (on value लिसनर)
+  }).catch((error) => {
+    console.error("Firebase read error:", error); // एरर लॉग
+    $("#roomStatus").text("एरर: डेटा पढ़ने में समस्या! " + error.message);
+  });
+}
+
+    
 function closeFullscreen() {
   if (document.exitFullscreen) {
     document.exitFullscreen();
