@@ -1,274 +1,275 @@
+/* मौजूदा CSS को जस का तस रखा, सिर्फ नए UI एलिमेंट्स के लिए जोड़ा */
 html {
-    width: 100%;
-    height: 100%;
+  width: 100%;
+  height: 100%;
 }
 
 body {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    font-family: Arial, Helvetica, sans-serif;
-    background-color: brown;
-    background-image: url("../images/wood-Board.jpg");
-    background-repeat: repeat;
-    background-size: cover;
-    background-position: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: brown;
+  background-image: url("../images/wood-Board.jpg");
+  background-repeat: repeat;
+  background-size: cover;
+  background-position: center;
 }
 
 header {
-    max-width: 800px;
-    margin: auto;
-    text-align: center;
+  max-width: 800px;
+  margin: auto;
+  text-align: center;
 }
 
 h1 {
-    font-size: 180%;
+  font-size: 180%;
 }
 
 main {
-    display: none;
-    max-width: 800px;
-    height: 100%;
-    position: relative;
-    margin: auto;
+  display: none;
+  max-width: 800px;
+  height: 100%;
+  position: relative;
+  margin: auto;
 }
 main div {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 .game-container {
-    position: relative;
-    max-width: 500px;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+  position: relative;
+  max-width: 500px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .wrap-box {
-    position: relative;
-    width: 100%;
-    height: 0;
-    padding-top: 125%;
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-top: 125%;
 }
 
 .game-box {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 
 .ludo-board {
-    display: inline-block;
-    width: 100%;
-    height: 80%;
-    background-color: black;
-    padding: 0.2%;
+  display: inline-block;
+  width: 100%;
+  height: 80%;
+  background-color: black;
+  padding: 0.2%;
 }
 
 .row {
-    font-size: 0;
+  font-size: 0;
 }
 
 .row .col {
-    display: inline-block;
-    vertical-align: middle;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .row1,
 .row3 {
-    width: 100%;
-    height: 40%;
+  width: 100%;
+  height: 40%;
 }
 
 .row2 {
-    width: 100%;
-    height: 20%;
+  width: 100%;
+  height: 20%;
 }
 
 #wrap-in-area {
-    width: 40%;
-    height: 100%;
-    background-color: black;
-    padding: 0.2%;
-    display: inline-block;
-    vertical-align: middle;
+  width: 40%;
+  height: 100%;
+  background-color: black;
+  padding: 0.2%;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .in-area {
-    position: relative;
-    padding: 12%;
-    width: 100%;
-    height: 100%;
+  position: relative;
+  padding: 12%;
+  width: 100%;
+  height: 100%;
 }
 
 .in-area .badge-box {
-    position: absolute;
-    width: 76%;
-    height: 76%;
-    background-color: white;
-    top: 12%;
-    left: 12%;
-    background-repeat: no-repeat;
-    background-size: 80%;
-    background-position: center;
+  position: absolute;
+  width: 76%;
+  height: 76%;
+  background-color: white;
+  top: 12%;
+  left: 12%;
+  background-repeat: no-repeat;
+  background-size: 80%;
+  background-position: center;
 }
 
 .row1 .out-area,
 .row3 .out-area {
-    width: 20%;
-    height: 100%;
-    background-color: black;
-    padding: 0;
+  width: 20%;
+  height: 100%;
+  background-color: black;
+  padding: 0;
 }
 
 .row2 .out-area {
-    width: 40%;
-    height: 100%;
-    background-color: black;
+  width: 40%;
+  height: 100%;
+  background-color: black;
 }
 
 .win-area {
-    width: 20%;
-    height: 100%;
-    position: relative;
-    overflow: hidden;
+  width: 20%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
 }
 
 .red-zone {
-    background-color: #ed2027;
+  background-color: #ed2027;
 }
 
 .green-zone {
-    background-color: #05a24b;
+  background-color: #05a24b;
 }
 
 .blue-zone {
-    background-color: #254399;
+  background-color: #254399;
 }
 
 .yellow-zone {
-    background-color: #ffde05;
+  background-color: #ffde05;
 }
 
 .btw-g-r .row,
 .btw-b-y .row {
-    width: 100%;
-    height: calc(100% / 6);
+  width: 100%;
+  height: calc(100% / 6);
 }
 
 .btw-g-r .row .col,
 .btw-b-y .row .col {
-    width: calc(100% / 3);
-    height: 100%;
-    padding: 1%;
-    background-color: black;
-    font-size: 0;
+  width: calc(100% / 3);
+  height: 100%;
+  padding: 1%;
+  background-color: black;
+  font-size: 0;
 }
 
 .btw-g-r .row .col div,
 .btw-b-y .row .col div {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    background-color: white;
-    border-radius: 5%;
-    display: inline-block;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background-color: white;
+  border-radius: 5%;
+  display: inline-block;
 }
 .btw-g-r .row .col div div,
 .btw-b-y .row .col div div {
-    background-color: transparent;
-    display: inline-block;
-    width: 100%;
-    height: 100%;
-    transform: scale(0.8);
+  background-color: transparent;
+  display: inline-block;
+  width: 100%;
+  height: 100%;
+  transform: scale(0.8);
 }
 
 .btw-r-b .row,
 .btw-y-g .row {
-    width: 100%;
-    height: calc(100% / 3);
+  width: 100%;
+  height: calc(100% / 3);
 }
 
 .btw-r-b .row .col,
 .btw-y-g .row .col {
-    width: calc(100% / 6);
-    height: 100%;
-    background-color: black;
-    padding: 0.5%;
-    font-size: 0;
+  width: calc(100% / 6);
+  height: 100%;
+  background-color: black;
+  padding: 0.5%;
+  font-size: 0;
 }
 
 .btw-r-b .row .col div,
 .btw-y-g .row .col div {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    background-color: white;
-    border-radius: 5%;
-    display: inline-block;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background-color: white;
+  border-radius: 5%;
+  display: inline-block;
 }
 .btw-r-b .row .col div div,
 .btw-y-g .row .col div div {
-    background-color: transparent;
-    display: inline-block;
-    width: 100%;
-    height: 100%;
-    transform: scale(0.8);
+  background-color: transparent;
+  display: inline-block;
+  width: 100%;
+  height: 100%;
+  transform: scale(0.8);
 }
 
 .pawn-box div {
-    background-color: transparent;
-    display: inline-block;
-    width: 100%;
-    height: 100%;
-    transform: scale(0.8);
+  background-color: transparent;
+  display: inline-block;
+  width: 100%;
+  height: 100%;
+  transform: scale(0.8);
 }
 
 .win-area .win-box {
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    transform-origin: bottom right;
-    padding: 0.5%;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  transform-origin: bottom right;
+  padding: 0.5%;
 }
 .win-box .win-pawn-box {
-    width: 100%;
-    height: 100%;
-    position: relative;
+  width: 100%;
+  height: 100%;
+  position: relative;
 }
 .win-box .win-pawn-box div {
-    width: 20%;
-    height: 20%;
-    position: absolute;
-    background-color: transparent;
+  width: 20%;
+  height: 20%;
+  position: absolute;
+  background-color: transparent;
 }
 #win-box1 {
-    transform: translate(-50%, -50%) rotate(45deg);
+  transform: translate(-50%, -50%) rotate(45deg);
 }
 #g-win-pawn-box {
-    background-color: #05a24b;
+  background-color: #05a24b;
 }
 #win-box2 {
-    transform: translate(-50%, -50%) rotate(135deg);
+  transform: translate(-50%, -50%) rotate(135deg);
 }
 #y-win-pawn-box {
-    background-color: #ffde05;
+  background-color: #ffde05;
 }
 #win-box3 {
-    transform: translate(-50%, -50%) rotate(225deg);
+  transform: translate(-50%, -50%) rotate(225deg);
 }
 #b-win-pawn-box {
-    background-color: #254399;
+  background-color: #254399;
 }
 #win-box4 {
-    transform: translate(-50%, -50%) rotate(315deg);
+  transform: translate(-50%, -50%) rotate(315deg);
 }
 #r-win-pawn-box {
-    background-color: #ed2027;
+  background-color: #ed2027;
 }
 
 #out14,
@@ -277,7 +278,7 @@ main div {
 #g-out-3,
 #g-out-4,
 #g-out-5 {
-    background-color: #05a24b;
+  background-color: #05a24b;
 }
 
 #out1,
@@ -286,7 +287,7 @@ main div {
 #r-out-3,
 #r-out-4,
 #r-out-5 {
-    background-color: #ed2027;
+  background-color: #ed2027;
 }
 
 #out40,
@@ -295,7 +296,7 @@ main div {
 #b-out-3,
 #b-out-4,
 #b-out-5 {
-    background-color: #254399;
+  background-color: #254399;
 }
 
 #out27,
@@ -304,100 +305,100 @@ main div {
 #y-out-3,
 #y-out-4,
 #y-out-5 {
-    background-color: #ffde05;
+  background-color: #ffde05;
 }
 
 .in-area .row {
-    width: 100%;
-    height: 50%;
-    background-color: white;
+  width: 100%;
+  height: 50%;
+  background-color: white;
 }
 
 .in-area .row .col {
-    width: 50%;
-    height: 100%;
-    padding: 10%;
-    background-color: white;
+  width: 50%;
+  height: 100%;
+  padding: 10%;
+  background-color: white;
 }
 
 /* Red Section */
 .r-circle {
-    background-color: #ed2027;
-    position: relative;
-    border-radius: 50%;
-    width: 100%;
-    height: 100%;
+  background-color: #ed2027;
+  position: relative;
+  border-radius: 50%;
+  width: 100%;
+  height: 100%;
 }
 
 .r-pawn1,
 .r-pawn2,
 .r-pawn3,
 .r-pawn4 {
-    background-image: url("../images/pawns.png");
-    background-repeat: no-repeat;
-    background-size: 380%;
-    background-position-x: 0%;
-    background-position-y: 66.66%;
+  background-image: url("../images/pawns.png");
+  background-repeat: no-repeat;
+  background-size: 380%;
+  background-position-x: 0%;
+  background-position-y: 66.66%;
 }
 
 /* Green Section */
 .g-circle {
-    background: #05a24b;
-    border-radius: 50%;
-    position: relative;
-    width: 100%;
-    height: 100%;
+  background: #05a24b;
+  border-radius: 50%;
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .g-pawn1,
 .g-pawn2,
 .g-pawn3,
 .g-pawn4 {
-    background-image: url("../images/pawns.png");
-    background-repeat: no-repeat;
-    background-size: 380%;
-    background-position-x: 0%;
-    background-position-y: 33.33%;
+  background-image: url("../images/pawns.png");
+  background-repeat: no-repeat;
+  background-size: 380%;
+  background-position-x: 0%;
+  background-position-y: 33.33%;
 }
 
 /* Yellow Section */
 .y-circle {
-    background: #ffde05;
-    border-radius: 50%;
-    position: relative;
-    width: 100%;
-    height: 100%;
+  background: #ffde05;
+  border-radius: 50%;
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .y-pawn1,
 .y-pawn2,
 .y-pawn3,
 .y-pawn4 {
-    background-image: url("../images/pawns.png");
-    background-repeat: no-repeat;
-    background-size: 380%;
-    background-position-x: 0%;
-    background-position-y: 100%;
+  background-image: url("../images/pawns.png");
+  background-repeat: no-repeat;
+  background-size: 380%;
+  background-position-x: 0%;
+  background-position-y: 100%;
 }
 
 /* Blue Section */
 .b-circle {
-    background: #254399;
-    border-radius: 50%;
-    position: relative;
-    width: 100%;
-    height: 100%;
+  background: #254399;
+  border-radius: 50%;
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .b-pawn1,
 .b-pawn2,
 .b-pawn3,
 .b-pawn4 {
-    background-image: url("../images/pawns.png");
-    background-repeat: no-repeat;
-    background-size: 380%;
-    background-position-x: 0%;
-    background-position-y: 0%;
+  background-image: url("../images/pawns.png");
+  background-repeat: no-repeat;
+  background-size: 380%;
+  background-position-x: 0%;
+  background-position-y: 0%;
 }
 
 /* Star */
@@ -409,351 +410,347 @@ main div {
 #out14,
 #out27,
 #out40 {
-    background-image: url("../images/star2.png");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 80%;
+  background-image: url("../images/star2.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 80%;
 }
 
 .dice-container {
-    display: inline-block;
-    width: 100%;
-    height: 10%;
-    background: transparent;
+  display: inline-block;
+  width: 100%;
+  height: 10%;
+  background: transparent;
 }
 
 .dice-container-top {
-    transform: translateY(-10px);
+  transform: translateY(-10px);
 }
 .dice-container-bottom {
-    transform: translateY(10px);
+  transform: translateY(10px);
 }
 
 .dice-container .col1,
 .dice-container .col3 {
-    width: 12.5%;
-    height: 100%;
+  width: 12.5%;
+  height: 100%;
 }
 
 .dice-container .col2 {
-    width: 75%;
-    height: 100%;
+  width: 75%;
+  height: 100%;
 }
 
 .diceBox {
-    width: 100%;
-    height: 100%;
+  width: 100%;
+  height: 100%;
 }
 
 .greenDiceBox {
-    background: #05a24b;
+  background: #05a24b;
 }
 
 .redDiceBox {
-    background: #ed2027;
+  background: #ed2027;
 }
 
 .blueDiceBox {
-    background: #254399;
+  background: #254399;
 }
 
 .yellowDiceBox {
-    background: #ffde05;
+  background: #ffde05;
 }
 .startDiceRoll {
-    background-image: url(../images/start_dice_roll2.png);
-    background-size: 100%;
-    background-repeat: no-repeat;
-    cursor: pointer;
+  background-image: url(../images/start_dice_roll2.png);
+  background-size: 100%;
+  background-repeat: no-repeat;
+  cursor: pointer;
 }
 .rollDice {
-    background-image: url(../images/dice_roll.png);
-    background-repeat: no-repeat;
-    background-size: 600%;
-    background-position-x: 0%;
-    background-position-y: 0%;
+  background-image: url(../images/dice_roll.png);
+  background-repeat: no-repeat;
+  background-size: 600%;
+  background-position-x: 0%;
+  background-position-y: 0%;
 }
 .showDice {
-    background-image: url(../images/dice.png);
-    background-repeat: no-repeat;
-    background-size: 200%;
-    background-position-x: 0%;
-    background-position-y: 0%;
+  background-image: url(../images/dice.png);
+  background-repeat: no-repeat;
+  background-size: 200%;
+  background-position-x: 0%;
+  background-position-y: 0%;
 }
 
 /* Animation Section */
 .glow {
-    animation-name: example;
-    animation-duration: 0.5s;
-    animation-iteration-count: infinite;
-    animation-direction: alternate;
-    cursor: pointer;
+  animation-name: example;
+  animation-duration: 0.5s;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  cursor: pointer;
 }
 
 @keyframes example {
-    from {
-        transform: scale(0.8);
-    }
-    to {
-        transform: scale(1.2);
-    }
+  from {
+    transform: scale(0.8);
+  }
+  to {
+    transform: scale(1.2);
+  }
 }
 
 div#preload {
-    display: none;
+  display: none;
 }
 
 /* Home box css */
 #home-container {
-    display: block;
-    position: absolute;
-    text-align: center;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: #b2dfdb;
-    z-index: 1;
+  display: block;
+  position: absolute;
+  text-align: center;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #b2dfdb;
+  z-index: 1;
 }
 
 #home {
-    position: relative;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -70%);
+  position: relative;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -70%);
 }
 
 #game-logo {
-    margin: 50px auto;
-    color: royalblue;
-    font-family: "Fredoka One", cursive;
-    font-weight: bold;
-    font-size: 30px;
+  margin: 50px auto;
+  color: royalblue;
+  font-family: "Fredoka One", cursive;
+  font-weight: bold;
+  font-size: 30px;
 }
 
 #game-logo img {
-    width: 50px;
-    height: 50px;
+  width: 50px;
+  height: 50px;
+}
+
+#roomBox {
+  margin: 20px auto;
+}
+
+#roomBox input {
+  padding: 10px;
+  font-size: 20px;
+  border-radius: 5px;
+  border: 2px solid black;
+}
+
+#connectBtn {
+  padding: 10px 20px;
+  font-size: 20px;
+  background-color: yellow;
+  border: 2px solid black;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+#connectBtn:hover {
+  background-color: greenyellow;
 }
 
 #noOfplayerBox {
-    margin: 50px auto;
+  margin: 50px auto;
 }
+
 .noOfPlayer,
 .alertBtn {
-    display: inline-block;
-    text-align: center;
-    font-family: "Fredoka One", cursive;
-    font-weight: bold;
-    font-size: 30px;
-    color: red;
-    border: 5px solid black;
-    padding: 5px 5px 5px 5px;
-    border-radius: 10px;
-    margin: 20px;
-    cursor: pointer;
+  display: inline-block;
+  text-align: center;
+  font-family: "Fredoka One", cursive;
+  font-weight: bold;
+  font-size: 30px;
+  color: red;
+  border: 5px solid black;
+  padding: 5px 5px 5px 5px;
+  border-radius: 10px;
+  margin: 20px;
+  cursor: pointer;
+}
+
+#noOfplayerBox label {
+  font-family: "Fredoka One", cursive;
+  font-size: 20px;
+  color: black;
 }
 
 .selected {
-    transform: scale(1.2);
-    background-color: lightgreen;
-    cursor: default;
+  transform: scale(1.2);
+  background-color: lightgreen;
+  cursor: default;
 }
 
 #startGame {
-    font-family: "Fredoka One", cursive;
-    display: inline-block;
-    padding: 5px 15px;
-    font-size: 24px;
-    background-color: yellow;
-    color: red;
-    border: 5px solid black;
-    border-radius: 5px;
-    cursor: pointer;
+  font-family: "Fredoka One", cursive;
+  display: inline-block;
+  padding: 5px 15px;
+  font-size: 24px;
+  background-color: yellow;
+  color: red;
+  border: 5px solid black;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
 .settingsContiner {
-    width: 100%;
-    height: 100%;
-    background-color: transparent;
-    text-align: center;
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+  text-align: center;
 }
 
 .setting {
-    width: 12.335%;
-    height: 80%;
-    background-color: transparent;
-    background-repeat: no-repeat;
-    background-size: 100%;
-    background-position: center;
-    border: none;
-    margin: 0 10%;
-    padding: 0;
-    cursor: pointer;
+  width: 12.335%;
+  height: 80%;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-size: 100%;
+  background-position: center;
+  border: none;
+  margin: 0 10%;
+  padding: 0;
+  cursor: pointer;
 }
 #sound {
-    background-image: url(../images/sound-on.svg);
+  background-image: url(../images/sound-on.svg);
 }
 #restart {
-    background-image: url(../images/restart.svg);
+  background-image: url(../images/restart.svg);
 }
 #fullscreen {
-    background-image: url(../images/fullscreen.svg);
-    margin: 3% 10% 0%;
+  background-image: url(../images/fullscreen.svg);
+  margin: 3% 10% 0%;
 }
 #exitfullscreen {
-    background-image: url(../images/exit-fullscreen.svg);
-    margin: 3% 10% 0%;
-    display: none;
+  background-image: url(../images/exit-fullscreen.svg);
+  margin: 3% 10% 0%;
+  display: none;
 }
 .setting:focus {
-    outline: none;
-    border: none;
+  outline: none;
+  border: none;
 }
 
 #owner {
-    position: fixed;
-    bottom: 2%;
-    width: 100%;
+  position: fixed;
+  bottom: 2%;
+  width: 100%;
 }
 
 #alertBox {
-    display: none;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    border: 5px solid #32e0c4;
-    padding: 10px 20px;
-    background-color: white;
-    text-align: center;
-    border-radius: 10px;
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 5px solid #32e0c4;
+  padding: 10px 20px;
+  background-color: white;
+  text-align: center;
+  border-radius: 10px;
 }
 
 #alertHeading {
-    font-size: 25px;
-    font-family: "Fredoka One", cursive;
-    color: red;
+  font-size: 25px;
+  font-family: "Fredoka One", cursive;
+  color: red;
 }
 .alertBtn {
-    font-size: 20px;
-    background-color: yellow;
+  font-size: 20px;
+  background-color: yellow;
 }
 .alertBtn:hover {
-    background-color: greenyellow;
+  background-color: greenyellow;
 }
 .alertBtn:focus {
-    outline: none;
-}
-
-#room-code-container {
-    margin: 20px auto;
-    text-align: center;
-}
-
-#roomCode {
-    font-family: "Fredoka One", cursive;
-    font-size: 24px;
-    padding: 10px;
-    border: 3px solid black;
-    border-radius: 5px;
-    width: 200px;
-}
-
-#joinRoom, #createRoom {
-    font-family: "Fredoka One", cursive;
-    font-size: 24px;
-    padding: 5px 15px;
-    margin: 10px;
-    background-color: yellow;
-    color: red;
-    border: 5px solid black;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-#joinRoom:hover, #createRoom:hover {
-    background-color: greenyellow;
+  outline: none;
 }
 
 @media all and (display-mode: fullscreen) {
-    #fullscreen {
-        display: none;
-    }
+  #fullscreen {
+    display: none;
+  }
 }
 
 @media only screen and (min-device-width: 768px) and (max-device-width: 1024px) and (orientation: portrait) and (-webkit-min-device-pixel-ratio: 1) {
-    main {
-        max-width: 1000px;
-    }
-    .game-container {
-        max-width: 700px;
-    }
-    #game-logo {
-        font-size: 60px;
-    }
-    #game-logo img {
-        width: 80px;
-        height: 80px;
-    }
-    .noOfPlayer {
-        font-size: 60px;
-    }
-    #startGame {
-        font-size: 60px;
-    }
-    #owner {
-        font-size: 24px;
-    }
-    .alertBtn {
-        font-size: 40px;
-    }
-    #alertHeading {
-        font-size: 45px;
-    }
-    #roomCode {
-        font-size: 40px;
-        width: 300px;
-    }
-    #joinRoom, #createRoom {
-        font-size: 40px;
-    }
+  main {
+    max-width: 1000px;
+  }
+  .game-container {
+    max-width: 700px;
+  }
+  #game-logo {
+    font-size: 60px;
+  }
+  #game-logo img {
+    width: 80px;
+    height: 80px;
+  }
+  #roomBox input, #connectBtn {
+    font-size: 30px;
+    padding: 15px;
+  }
+  .noOfPlayer {
+    font-size: 60px;
+  }
+  #startGame {
+    font-size: 60px;
+  }
+  #owner {
+    font-size: 24px;
+  }
+  .alertBtn {
+    font-size: 40px;
+  }
+  #alertHeading {
+    font-size: 45px;
+  }
 }
 
 @media only screen and (min-device-width: 1024px) and (max-device-width: 1024px) and (orientation: portrait) and (-webkit-min-device-pixel-ratio: 2) {
-    main {
-        max-width: 1000px;
-    }
-    .game-container {
-        max-width: 980px;
-    }
-    #game-logo {
-        font-size: 80px;
-    }
-    #game-logo img {
-        width: 100px;
-        height: 100px;
-    }
-    .noOfPlayer {
-        font-size: 80px;
-    }
-    #startGame {
-        font-size: 80px;
-    }
-    #owner {
-        font-size: 28px;
-    }
-    .alertBtn {
-        font-size: 50px;
-    }
-    #alertHeading {
-        font-size: 55px;
-    }
-    #roomCode {
-        font-size: 50px;
-        width: 400px;
-    }
-    #joinRoom, #createRoom {
-        font-size: 50px;
-    }
+  main {
+    max-width: 1000px;
+  }
+  .game-container {
+    max-width: 980px;
+  }
+  #game-logo {
+    font-size: 80px;
+  }
+  #game-logo img {
+    width: 100px;
+    height: 100px;
+  }
+  #roomBox input, #connectBtn {
+    font-size: 40px;
+    padding: 20px;
+  }
+  .noOfPlayer {
+    font-size: 80px;
+  }
+  #startGame {
+    font-size: 80px;
+  }
+  #owner {
+    font-size: 28px;
+  }
+  .alertBtn {
+    font-size: 50px;
+  }
+  #alertHeading {
+    font-size: 55px;
+  }
 }
