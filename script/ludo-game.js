@@ -1,1013 +1,468 @@
-// Firebase Initialization
-const firebaseConfig = {
-  apiKey: "AIzaSyAG87kxJWSsOWvx_nFEBdSbYIgJKgGDJ6Q",
-  authDomain: "ludofree-67c14.firebaseapp.com",
-  projectId: "ludofree-67c14",
-  storageBucket: "ludofree-67c14.firebasestorage.app",
-  messagingSenderId: "400295435194",
-  appId: "1:400295435194:web:d625640d2fdbec69af1b83",
-  databaseURL: "https://ludofree-67c14-default-rtdb.firebaseio.com"
-};
+/* ===========================
+   Ludo – Modern Local Build
+   Features:
+   - Login Gate (code 808580)
+   - Themes + Smooth Pawn Animation + Glow
+   - 3D-feel Dice with vibration
+   - Scoreboard (cuts + home) + team totals
+   - Single mode (4 colors) OR Team mode (R+Y vs G+B)
+   - Local only (no backend)
+   =========================== */
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+(function(){
+  // ---------- DOM ----------
+  const $ = (q, ctx=document) => ctx.querySelector(q);
+  const $$ = (q, ctx=document) => Array.from(ctx.querySelectorAll(q));
 
-let playerNo = 0; // (red=1, green=2, yellow=3, blue=4)
-let playerName = null;
-let diceBoxId = null;
-let preDiceBoxId = null;
-let rndmNo = null;
-let countSix = 0;
-let cut = false;
-let pass = false;
-let flag = false;
-let noOfPlayer = 4; // Default
-let winningOrder = [];
-let sound = true;
-let roomId = null;
-let myPlayerId = null;
-let isTeamMode = false;
-let teamColors = {};
+  const gate = $('#login-gate');
+  const gateInput = $('#gate-code');
+  const gateBtn = $('#gate-btn');
+  const gateErr = $('#gate-err');
 
-// Audio Variables
-let rollAudio = new Audio("../music/diceRollingSound.mp3");
-let openAudio = new Audio("../music/open-sound.wav");
-let jumpAudio = new Audio("../music/jump-sound.mp3");
-let cutAudio = new Audio("../music/cut-sound.wav");
-let passAudio = new Audio("../music/pass-sound.mp3");
-let winAudio = new Audio("../music/win-sound.mp3");
+  const themeSelect = $('#theme-select');
+  const modeSelect = $('#mode-select');
+  const playersSelect = $('#players-select');
+  const newGameBtn = $('#new-game');
+  const resetScoresBtn = $('#reset-scores');
+  const fullscreenBtn = $('#fullscreen');
+  const soundToggle = $('#sound-toggle');
 
-// Object Declarations
-function Position(length) {
-  for (let i = 1; i <= length; i++) {
-    this[i] = [];
-  }
-}
+  const boardEl = $('#board');
+  const diceWrap = $('#dice-wrap');
+  const diceEl = $('#dice');
+  const rollBtn = $('#roll');
+  const rollHint = $('#roll-hint');
+  const turnName = $('#turn-name');
+  const modePill = $('#mode-pill');
 
-function Player(startPoint, endPoint) {
-  this.inArea = [];
-  this.outArea = [];
-  this.privateArea = [];
-  this.winArea = [];
-  this.startPoint = startPoint;
-  this.endPoint = endPoint;
-  this.privateAreaPos = new Position(5);
-}
-
-let players = {
-  rPlayer: new Player("out1", "out51"),
-  gPlayer: new Player("out14", "out12"),
-  yPlayer: new Player("out27", "out25"),
-  bPlayer: new Player("out40", "out38"),
-};
-
-let outAreaPos = new Position(52);
-
-// Firebase Room Logic
-function joinRoom() {
-  const code = $("#roomCode").val().trim();
-  if (!code) {
-    $("#roomStatus").text("कोड डालें!");
-    return;
-  }
-  roomId = code;
-  myPlayerId = Math.random().toString(36).substring(2, 10); // Unique player ID
-
-  db.ref(`rooms/${roomId}`).once('value', (snapshot) => {
-    let room = snapshot.val() || { players: [], gameState: {}, started: false };
-    if (room.players.length >= 4) {
-      $("#roomStatus").text("रूम फुल है!");
-      return;
-    }
-    room.players.push({ id: myPlayerId, colors: [] });
-    db.ref(`rooms/${roomId}`).set(room);
-    $("#roomStatus").text("कनेक्टेड! खिलाड़ियों का इंतज़ार...");
-
-    // Listen for room updates
-    db.ref(`rooms/${roomId}`).on('value', (snapshot) => {
-      const data = snapshot.val();
-      if (!data) return;
-      if (data.started) {
-        $("#roomBox").hide();
-        $("#noOfplayerBox").show();
-        $("#startGame").show();
-        noOfPlayer = data.players.length;
-        assignColors(data.players);
-        if (data.gameState.currentPlayer === myPlayerId) {
-          switchDiceBoxId();
-          switchPlayerName();
-          enableDice();
-        }
-      } else if (data.players.length >= 2) {
-        setTimeout(() => {
-          if (!data.started) {
-            db.ref(`rooms/${roomId}/started`).set(true);
-          }
-        }, 30000);
-      }
-    });
-  });
-}
-
-function assignColors(playersList) {
-  isTeamMode = $("#teamMode").is(":checked");
-  const colors = ['rPlayer', 'gPlayer', 'yPlayer', 'bPlayer'];
-  playersList.forEach((p, index) => {
-    if (p.id === myPlayerId) {
-      playerNo = index + 1;
-      if (isTeamMode && playersList.length === 2) {
-        teamColors[p.id] = index === 0 ? ['rPlayer', 'gPlayer'] : ['yPlayer', 'bPlayer'];
-      } else {
-        teamColors[p.id] = [colors[index]];
-      }
-    }
-  });
-}
-
-function enableDice() {
-  if (diceBoxId && teamColors[myPlayerId].includes(playerName)) {
-    $(diceBoxId).addClass("startDiceRoll");
-    $(diceBoxId).one("click", function () {
-      rollDice(diceBoxId);
-    });
-  }
-}
-
-// Switch Functions
-function switchDiceBoxId() {
-  (playerNo == 1 && (diceBoxId = "#redDice")) ||
-    (playerNo == 2 && (diceBoxId = "#greenDice")) ||
-    (playerNo == 3 && (diceBoxId = "#yellowDice")) ||
-    (playerNo == 4 && (diceBoxId = "#blueDice"));
-}
-
-function switchPlayerName() {
-  (playerNo == 1 && (playerName = "rPlayer")) ||
-    (playerNo == 2 && (playerName = "gPlayer")) ||
-    (playerNo == 3 && (playerName = "yPlayer")) ||
-    (playerNo == 4 && (playerName = "bPlayer"));
-}
-
-// Get Functions
-function getNoFromValue(value) {
-  return +value.match(/\d+/);
-}
-
-function getColorFromValue(value) {
-  return value.charAt(0);
-}
-
-function getRotateValue(color) {
-  let rotate = null;
-  (color == "g" && (rotate = "-45deg")) ||
-    (color == "y" && (rotate = "-135deg")) ||
-    (color == "b" && (rotate = "-225deg")) ||
-    (color == "r" && (rotate = "-315deg"));
-  return rotate;
-}
-
-function getUpdatedWHoutAreaPos(noInId) {
-  let posLength = outAreaPos[noInId].length;
-  let wh = [];
-  if (posLength > 0) {
-    wh[0] = 100 / posLength;
-    wh[1] = 100 / posLength;
-    for (const cValue of outAreaPos[noInId]) {
-      $("." + cValue).css({
-        width: wh[0] + "%",
-        height: wh[1] + "%",
-        display: "inline-block",
-      });
-    }
-  }
-  return wh;
-}
-
-function getUpdatedWHprivateAreaPos(noInId) {
-  let wh = [];
-  let privateAreaLength = players[playerName].privateAreaPos[noInId].length;
-  if (privateAreaLength > 0) {
-    wh[0] = 100 / privateAreaLength;
-    wh[1] = 100 / privateAreaLength;
-    for (const cValue of players[playerName].privateAreaPos[noInId]) {
-      $("." + cValue).css({
-        width: wh[0] + "%",
-        height: wh[1] + "%",
-        display: "inline-block",
-      });
-    }
-  }
-  return wh;
-}
-
-function reUpdateOutAreaWH(...classArr) {
-  for (const classV of classArr) {
-    let theId = $("." + classV).parent().attr("id");
-    let noInId = getNoFromValue(theId);
-    getUpdatedWHoutAreaPos(noInId);
-  }
-}
-
-function reUpdatePrivateAreaWH(...classArr) {
-  for (const classV of classArr) {
-    let theId = $("." + classV).parent().attr("id");
-    let noInId = getNoFromValue(theId);
-    getUpdatedWHprivateAreaPos(noInId);
-  }
-}
-
-// Check Functions
-function check52(id) {
-  return getNoFromValue(id) == 52;
-}
-
-function checkOutAreaEnd(id) {
-  return getNoFromValue(id) == getNoFromValue(players[playerName].endPoint);
-}
-
-function checkprivateAreaEnd(id) {
-  return getNoFromValue(id) == 5;
-}
-
-// Add and Remove Functions
-function removeAllGlow(...area) {
-  for (const areaValue of area) {
-    for (const classValue of players[playerName][areaValue]) {
-      $("." + classValue).removeClass("glow");
-    }
-  }
-}
-
-function removeAllEvent(...area) {
-  for (const areaValue of area) {
-    for (const classValue of players[playerName][areaValue]) {
-      $("." + classValue).off();
-    }
-  }
-}
-
-function addToArea(addValue, pName, areaName) {
-  players[pName][areaName].push(addValue);
-  db.ref(`rooms/${roomId}/gameState/players`).set(players);
-}
-
-function removeFromArea(removeValue, pName, areaName) {
-  let newArr = players[pName][areaName].filter(val => val != removeValue);
-  players[pName][areaName] = newArr;
-  db.ref(`rooms/${roomId}/gameState/players`).set(players);
-}
-
-function removeFromPrivateAreaPos(posValue, classValue, pName) {
-  let newPrivateAreaPosArr = players[pName].privateAreaPos[posValue].filter(cValue => cValue != classValue);
-  players[pName].privateAreaPos[posValue] = newPrivateAreaPosArr;
-  db.ref(`rooms/${roomId}/gameState/players`).set(players);
-}
-
-function addToPrivateAreaPos(posValue, classValue, pName) {
-  players[pName].privateAreaPos[posValue].push(classValue);
-  db.ref(`rooms/${roomId}/gameState/players`).set(players);
-}
-
-function addToOutAreaPos(posValue, classValue) {
-  outAreaPos[posValue].push(classValue);
-  db.ref(`rooms/${roomId}/gameState/outAreaPos`).set(outAreaPos);
-}
-
-function removeFromOutAreaPos(posValue, classValue) {
-  let newPosArr = outAreaPos[posValue].filter(cValue => cValue != classValue);
-  outAreaPos[posValue] = newPosArr;
-  db.ref(`rooms/${roomId}/gameState/outAreaPos`).set(outAreaPos);
-}
-
-// Main Functions
-function nextPlayer() {
-  if (winningOrder.length == noOfPlayer - 1) {
-    setTimeout(restartGame, 1000);
-    return;
-  }
-  if (playerNo == 4) playerNo = 0;
-  if ((rndmNo != 5 && cut != true && pass != true) || countSix == 3) {
-    playerNo++;
-    countSix = 0;
-    preDiceBoxId = null;
-  }
-  if (cut == true || pass == true) {
-    countSix = 0;
-    preDiceBoxId = null;
-    pass = false;
-    cut = false;
-  }
-  if (diceBoxId != null) $(diceBoxId).removeClass("showDice");
-  switchDiceBoxId();
-  switchPlayerName();
-  if (players[playerName].winArea.length == 4 || 
-      (players[playerName].inArea.length == 0 && 
-       players[playerName].outArea.length == 0 && 
-       players[playerName].privateArea.length == 0)) {
-    if (rndmNo == 5) rndmNo = null;
-    nextPlayer();
-  } else {
-    db.ref(`rooms/${roomId}/gameState`).update({
-      currentPlayer: myPlayerId,
-      playerNo,
-      playerName
-    });
-    if (teamColors[myPlayerId].includes(playerName)) {
-      enableDice();
-    }
-  }
-}
-
-function rollDice(idValue) {
-  let pX = 0;
-  let pY = 0;
-  $(idValue).removeClass("startDiceRoll").addClass("rollDice");
-  if (sound) {
-    rollAudio.play();
-    rollAudio.playbackRate = 3.2;
-  }
-  let timerId = setInterval(() => {
-    (pX == 100 && ((pX = 0), (pY = pY + 25))) || (pX = pX + 20);
-    $(idValue).css({
-      "background-position-x": pX + "%",
-      "background-position-y": pY + "%",
-    });
-    if (pY == 100 && pX == 100) {
-      clearInterval(timerId);
-      showDice(idValue);
-      db.ref(`rooms/${roomId}/gameState`).update({ rndmNo });
-      if (rndmNo == 5 && countSix != 3) {
-        if (players[playerName].outArea.length == 0 && players[playerName].inArea.length > 0) {
-          autoOpen(players[playerName].inArea.length);
-        } else {
-          openPawn();
-          movePawnOnOutArea();
-          updatePlayer();
-        }
-      } else if (rndmNo < 5) {
-        movePawnOnOutArea();
-        movePawnOnPrivateArea();
-        updatePlayer();
-      } else {
-        setTimeout(nextPlayer, 500);
-      }
-    }
-  }, 20);
-}
-
-function showDice(idValue) {
-  const pXpYarr = [[0, 0], [100, 0], [0, 50], [100, 50], [0, 100], [100, 100]];
-  rndmNo = Math.floor(Math.random() * 6);
-  if ((preDiceBoxId == null || preDiceBoxId == idValue) && rndmNo == 5) {
-    countSix++;
-  }
-  let pX = pXpYarr[rndmNo][0];
-  let pY = pXpYarr[rndmNo][1];
-  $(idValue).removeClass("rollDice").addClass("showDice");
-  $(idValue).css({
-    "background-position-x": pX + "%",
-    "background-position-y": pY + "%",
-  });
-  preDiceBoxId = idValue;
-}
-
-function openPawn() {
-  let inAreaLength = players[playerName].inArea.length;
-  let outAreaLength = players[playerName].outArea.length;
-  if (inAreaLength == 0) return;
-  if (outAreaLength == 0) {
-    setTimeout(() => autoOpen(inAreaLength), 500);
-  } else {
-    manuallyOpen();
-  }
-}
-
-function manuallyOpen() {
-  for (const classValue of players[playerName].inArea) {
-    $("." + classValue).addClass("glow");
-    $("." + classValue).one("click", function () {
-      reUpdateOutAreaWH(...players[playerName].outArea);
-      reUpdatePrivateAreaWH(...players[playerName].privateArea);
-      open(classValue);
-    });
-  }
-}
-
-function autoOpen(inAreaLength) {
-  let openClassValue = players[playerName].inArea[Math.floor(Math.random() * inAreaLength)];
-  open(openClassValue);
-}
-
-function open(openClassValue) {
-  let startPoint = players[playerName].startPoint;
-  let audioDuration = 500;
-  removeAllGlow("inArea", "outArea");
-  removeAllEvent("inArea", "outArea");
-  removeFromArea(openClassValue, playerName, "inArea");
-  addToArea(openClassValue, playerName, "outArea");
-  addToOutAreaPos(getNoFromValue(startPoint), openClassValue);
-  $("." + openClassValue).remove();
-  let noInId = getNoFromValue(startPoint);
-  let w = getUpdatedWHoutAreaPos(noInId)[0];
-  let h = getUpdatedWHoutAreaPos(noInId)[1];
-  if (sound) {
-    audioDuration = openAudio.duration * 1000;
-    openAudio.play();
-  }
-  $("#" + startPoint).append(
-    `<div class="${openClassValue}" style="width:${w}%; height:${h}%;"></div>`
-  );
-  setTimeout(nextPlayer, audioDuration);
-}
-
-function movePawnOnOutArea() {
-  let outAreaLength = players[playerName].outArea.length;
-  if (outAreaLength == 0) return;
-  if (outAreaLength == 1 && rndmNo != 5 && players[playerName].privateArea.length == 0) {
-    autoMoveOnOutArea();
-  } else {
-    manuallyMoveOnOutArea();
-  }
-}
-
-function manuallyMoveOnOutArea() {
-  let idArr = [];
-  for (const classValue of players[playerName].outArea) {
-    let idValue = $("." + classValue).parent().attr("id");
-    if (idArr.includes(idValue)) continue;
-    for (const cValue of outAreaPos[getNoFromValue(idValue)]) {
-      if (cValue != classValue) $("." + cValue).css("display", "none");
-    }
-    $("." + classValue).css({
-      width: "100%",
-      height: "100%",
-      display: "inline-block",
-    });
-    idArr.push(idValue);
-    $("." + classValue).addClass("glow");
-    $("." + classValue).one("click", function () {
-      reUpdateOutAreaWH(...players[playerName].outArea);
-      reUpdatePrivateAreaWH(...players[playerName].privateArea);
-      moveOnOutArea(classValue);
-    });
-  }
-}
-
-function autoMoveOnOutArea() {
-  moveOnOutArea(players[playerName].outArea[0]);
-}
-
-function moveOnOutArea(cValue) {
-  let count = -1;
-  let idValue = $("." + cValue).parent().attr("id");
-  let noInId = getNoFromValue(idValue);
-  let newId = "out" + noInId;
-  let oldId = newId;
-  let wh = [];
-  let moveingClassValue = cValue;
-  let color = getColorFromValue(moveingClassValue);
-  let winAudioPlay = false;
-  let passAudioPlay = false;
-  removeAllGlow("inArea", "outArea", "privateArea");
-  removeAllEvent("inArea", "outArea", "privateArea");
-  let timerId = setInterval(function () {
-    if (checkOutAreaEnd(newId)) {
-      count++;
-      removeFromOutAreaPos(noInId, moveingClassValue);
-      removeFromArea(moveingClassValue, playerName, "outArea");
-      $("." + moveingClassValue).remove();
-      wh = getUpdatedWHoutAreaPos(noInId);
-      noInId = 1;
-      newId = color + "-out-" + noInId;
-      oldId = newId;
-      addToArea(moveingClassValue, playerName, "privateArea");
-      addToPrivateAreaPos(noInId, moveingClassValue, playerName);
-      wh = getUpdatedWHprivateAreaPos(noInId);
-      if (sound) jumpAudio.play();
-      $("#" + newId).append(
-        `<div class="${moveingClassValue}" style="width:${wh[0]}%; height:${wh[1]}%;"></div>`
-      );
-    } else if (players[playerName].privateArea.includes(moveingClassValue)) {
-      count++;
-      $("." + moveingClassValue).remove();
-      removeFromPrivateAreaPos(noInId, moveingClassValue, playerName);
-      wh = getUpdatedWHprivateAreaPos(noInId);
-      if (checkprivateAreaEnd(oldId)) {
-        pass = true;
-        removeFromArea(moveingClassValue, playerName, "privateArea");
-        addToArea(moveingClassValue, playerName, "winArea");
-        sendToWinArea(moveingClassValue, playerName, color);
-        if (players[playerName].winArea.length == 4) {
-          if (sound) {
-            winAudioPlay = true;
-            winAudio.play();
-          }
-          updateWinningOrder(playerName);
-          showWinningBadge();
-        }
-        if (sound && !winAudioPlay) {
-          passAudio.play();
-          passAudioPlay = true;
-        }
-      } else {
-        noInId++;
-        newId = color + "-out-" + noInId;
-        oldId = newId;
-        addToPrivateAreaPos(noInId, moveingClassValue, playerName);
-        wh = getUpdatedWHprivateAreaPos(noInId);
-        if (sound) jumpAudio.play();
-        $("#" + newId).append(
-          `<div class="${moveingClassValue}" style="width:${wh[0]}%; height:${wh[1]}%;"></div>`
-        );
-      }
-    } else {
-      count++;
-      $("." + moveingClassValue).remove();
-      removeFromOutAreaPos(noInId, moveingClassValue);
-      wh = getUpdatedWHoutAreaPos(noInId);
-      if (check52(oldId)) {
-        noInId = 1;
-        newId = "out" + noInId;
-        oldId = newId;
-      } else {
-        noInId++;
-        newId = "out" + noInId;
-        oldId = newId;
-      }
-      addToOutAreaPos(noInId, moveingClassValue);
-      wh = getUpdatedWHoutAreaPos(noInId);
-      if (sound) jumpAudio.play();
-      $("#" + newId).append(
-        `<div class="${moveingClassValue}" style="width:${wh[0]}%; height:${wh[1]}%;"></div>`
-      );
-    }
-    if (count == rndmNo) {
-      clearInterval(timerId);
-      cutPawn(noInId, moveingClassValue);
-      if (sound && winAudioPlay) {
-        winAudio.onended = () => nextPlayer();
-      } else if (sound && passAudioPlay) {
-        passAudio.onended = () => nextPlayer();
-      } else {
-        setTimeout(() => nextPlayer(), 500);
-      }
-    }
-  }, 500);
-}
-
-function movePawnOnPrivateArea() {
-  let privateAreaLength = players[playerName].privateArea.length;
-  let outAreaLength = players[playerName].outArea.length;
-  if (privateAreaLength == 0 || rndmNo == 5) return;
-  let moveingClassArr = [];
-  for (const cValue of players[playerName].privateArea) {
-    let idValue = $("." + cValue).parent().attr("id");
-    let noInId = getNoFromValue(idValue);
-    if (rndmNo <= 5 - noInId) {
-      moveingClassArr.push(cValue);
-    }
-  }
-  if (moveingClassArr.length == 0) {
-    flag = false;
-    return;
-  } else if (outAreaLength == 0 && moveingClassArr.length == 1) {
-    flag = true;
-    autoMoveOnPrivateArea(moveingClassArr);
-  } else {
-    flag = true;
-    manuallyMoveOnPrivateArea(moveingClassArr);
-  }
-}
-
-function manuallyMoveOnPrivateArea(moveingClassArr) {
-  let idArr = [];
-  for (const classValue of moveingClassArr) {
-    let idValue = $("." + classValue).parent().attr("id");
-    if (idArr.includes(idValue)) continue;
-    for (const cValue of players[playerName].privateAreaPos[getNoFromValue(idValue)]) {
-      if (cValue != classValue) $("." + cValue).css("display", "none");
-    }
-    $("." + classValue).css({
-      width: "100%",
-      height: "100%",
-      display: "inline-block",
-    });
-    idArr.push(idValue);
-    $("." + classValue).addClass("glow");
-    $("." + classValue).one("click", function () {
-      reUpdateOutAreaWH(...players[playerName].outArea);
-      reUpdatePrivateAreaWH(...players[playerName].privateArea);
-      moveOnPrivateArea(classValue);
-    });
-  }
-}
-
-function autoMoveOnPrivateArea(moveingClassArr) {
-  moveOnPrivateArea(moveingClassArr[0]);
-}
-
-function moveOnPrivateArea(cValue) {
-  let idValue = $("." + cValue).parent().attr("id");
-  let moveingClassValue = cValue;
-  let noInId = getNoFromValue(idValue);
-  let color = getColorFromValue(moveingClassValue);
-  let count = -1;
-  let newId = color + "-out-" + noInId;
-  let oldId = newId;
-  let wh = [];
-  let winAudioPlay = false;
-  let passAudioPlay = false;
-  removeAllGlow("inArea", "outArea", "privateArea");
-  removeAllEvent("inArea", "outArea", "privateArea");
-  let timerId = setInterval(function () {
-    count++;
-    $("." + moveingClassValue).remove();
-    removeFromPrivateAreaPos(noInId, moveingClassValue, playerName);
-    wh = getUpdatedWHprivateAreaPos(noInId);
-    if (checkprivateAreaEnd(oldId)) {
-      pass = true;
-      removeFromArea(moveingClassValue, playerName, "privateArea");
-      addToArea(moveingClassValue, playerName, "winArea");
-      sendToWinArea(moveingClassValue, playerName, color);
-      if (players[playerName].winArea.length == 4) {
-        if (sound) {
-          winAudioPlay = true;
-          winAudio.play();
-        }
-        updateWinningOrder(playerName);
-        showWinningBadge();
-      }
-      if (sound && !winAudioPlay) {
-        passAudio.play();
-        passAudioPlay = true;
-      }
-    } else {
-      noInId++;
-      newId = color + "-out-" + noInId;
-      oldId = newId;
-      addToPrivateAreaPos(noInId, moveingClassValue, playerName);
-      wh = getUpdatedWHprivateAreaPos(noInId);
-      if (sound) jumpAudio.play();
-      $("#" + newId).append(
-        `<div class="${moveingClassValue}" style="width:${wh[0]}%; height:${wh[1]}%;"></div>`
-      );
-    }
-    if (count == rndmNo) {
-      clearInterval(timerId);
-      if (sound && winAudioPlay) {
-        winAudio.onended = () => nextPlayer();
-      } else if (sound && passAudioPlay) {
-        passAudio.onended = () => nextPlayer();
-      } else {
-        setTimeout(() => nextPlayer(), 500);
-      }
-    }
-  }, 500);
-}
-
-function updatePlayer() {
-  if (players[playerName].inArea.length == 4 && rndmNo < 5) {
-    setTimeout(() => nextPlayer(), 500);
-    return;
-  }
-  if (players[playerName].winArea.length < 4) {
-    if (flag == true) {
-      flag = false;
-      return;
-    } else if (
-      rndmNo == 5 &&
-      players[playerName].outArea.length == 0 &&
-      players[playerName].inArea.length == 0
-    ) {
-      setTimeout(() => nextPlayer(), 500);
-      return;
-    } else if (
-      players[playerName].inArea.length > 0 &&
-      flag == false &&
-      rndmNo < 5
-    ) {
-      setTimeout(() => nextPlayer(), 500);
-      return;
-    } else if (
-      players[playerName].inArea.length > 0 &&
-      flag == false &&
-      rndmNo == 5
-    ) {
-      return;
-    } else {
-      setTimeout(() => nextPlayer(), 500);
-      return;
-    }
-  } else {
-    setTimeout(() => nextPlayer(), 500);
-    return;
-  }
-}
-
-function sendToWinArea(cValue, pName, color) {
-  $("#" + color + "-win-pawn-box").append(`<div class="${cValue}"></div>`);
-  updateWinAreaCss(pName, color);
-  db.ref(`rooms/${roomId}/gameState/players`).set(players);
-}
-
-function updateWinAreaCss(pName, color) {
-  const winAreaPxPY = [
-    [[380, 380]],
-    [[380, 380], [305, 305]],
-    [[380, 380], [230, 380], [380, 230]],
-    [[380, 380], [230, 380], [305, 305], [380, 230]],
-  ];
-  let i = 0;
-  let rotateValue = getRotateValue(color);
-  let winAreaLength = players[pName].winArea.length;
-  for (const classValue of players[pName].winArea) {
-    let x = winAreaPxPY[winAreaLength - 1][i][0];
-    let y = winAreaPxPY[winAreaLength - 1][i][1];
-    i++;
-    $("." + classValue).css({
-      transform: `translate(${x}%, ${y}%) rotate(${rotateValue})`,
-    });
-  }
-}
-
-function updateWinningOrder(pName) {
-  if (players[pName].winArea.length == 4) {
-    winningOrder.push(pName);
-    db.ref(`rooms/${roomId}/gameState/winningOrder`).set(winningOrder);
-  }
-}
-
-function showWinningBadge() {
-  if (winningOrder.length > 0) {
-    let idValue = winningOrder[winningOrder.length - 1];
-    let url = getBadgeImage(winningOrder.length - 1);
-    $("#" + idValue).append(
-      `<div class="badge-box" style="background-image: ${url};"></div>`
-    );
-  }
-}
-
-function getBadgeImage(winNo) {
-  let imageName = winNo == 0 ? "win1" : winNo == 1 ? "win2" : "win3";
-  return `url(../images/${imageName}.png)`;
-}
-
-function cutPawn(noInId, moveingClassValue) {
-  if (players[playerName].outArea.includes(moveingClassValue)) {
-    if ([1, 48, 9, 22, 35, 14, 27, 40].includes(noInId)) return;
-    let colorInClass = getColorFromValue(moveingClassValue);
-    let targetClass = null;
-    for (const cValve of outAreaPos[noInId]) {
-      if (colorInClass != getColorFromValue(cValve)) {
-        targetClass = cValve;
-      }
-    }
-    if (targetClass != null) {
-      $("." + targetClass).remove();
-      if (sound) cutAudio.play();
-      colorInClass = getColorFromValue(targetClass);
-      let pName = colorInClass + "Player";
-      removeFromArea(targetClass, pName, "outArea");
-      addToArea(targetClass, pName, "inArea");
-      removeFromOutAreaPos(noInId, targetClass);
-      let noInClass = getNoFromValue(targetClass);
-      $(`#in-${colorInClass}-${noInClass}`).append(
-        `<div class='${colorInClass}-pawn${noInClass}'></div>`
-      );
-      cut = true;
-      getUpdatedWHoutAreaPos(noInId);
-    }
-  }
-}
-
-function startGame() {
-  if (isTeamMode && noOfPlayer === 2) {
-    setPawn("r", "g", "y", "b");
-  } else if (noOfPlayer == 2) {
-    setPawn("r", "y");
-  } else if (noOfPlayer == 3) {
-    setPawn("r", "g", "y");
-  } else {
-    setPawn("r", "g", "y", "b");
-  }
-  $("main").css("display", "block");
-  db.ref(`rooms/${roomId}/gameState`).update({
-    players,
-    outAreaPos,
-    started: true
-  });
-  nextPlayer();
-}
-
-function setPawn(...color) {
-  for (const colorName of color) {
-    players[colorName + "Player"].inArea = [
-      colorName + "-pawn1",
-      colorName + "-pawn2",
-      colorName + "-pawn3",
-      colorName + "-pawn4",
-    ];
-    for (let i = 1; i <= 4; i++)
-      $(`#in-${colorName}-${i}`).append(
-        `<div class='${colorName}-pawn${i}'></div>`
-      );
-  }
-  db.ref(`rooms/${roomId}/gameState/players`).set(players);
-}
-
-$("#connectBtn").click(joinRoom);
-
-$("#twoPlayer").click(function () {
-  $(".selected").removeClass("selected");
-  $(this).addClass("selected");
-  noOfPlayer = 2;
-});
-
-$("#threePlayer").click(function () {
-  $(".selected").removeClass("selected");
-  $(this).addClass("selected");
-  noOfPlayer = 3;
-});
-
-$("#fourPlayer").click(function () {
-  $(".selected").removeClass("selected");
-  $(this).addClass("selected");
-  noOfPlayer = 4;
-});
-
-$("#startGame").click(function () {
-  $("#home-container").css("display", "none");
-  startGame();
-});
-
-function resetPawn(...color) {
-  for (const colorName of color) {
-    for (let i = 1; i <= 4; i++) {
-      $(`.${colorName}-pawn${i}`).remove();
-    }
-  }
-}
-
-function restartGame() {
-  $("#home-container").css("display", "block");
-  $("main").css("display", "none");
-  $("." + "badge-box").remove();
-  if (noOfPlayer == 2 && !isTeamMode) {
-    resetPawn("r", "y");
-  } else if (noOfPlayer == 3) {
-    resetPawn("r", "g", "y");
-  } else {
-    resetPawn("r", "g", "y", "b");
-  }
-  $(diceBoxId).removeClass("startDiceRoll showDice").off();
-  players = {
-    rPlayer: new Player("out1", "out51"),
-    gPlayer: new Player("out14", "out12"),
-    yPlayer: new Player("out27", "out25"),
-    bPlayer: new Player("out40", "out38"),
+  // Scores elements
+  const scoreEl = {
+    R: $('#scr-R'), G: $('#scr-G'), Y: $('#scr-Y'), B: $('#scr-B'),
+    cutR: $('#cut-R'), cutG: $('#cut-G'), cutY: $('#cut-Y'), cutB: $('#cut-B'),
+    homeR: $('#home-R'), homeG: $('#home-G'), homeY: $('#home-Y'), homeB: $('#home-B'),
+    teamRY: $('#scr-RY'), teamGB: $('#scr-GB')
   };
-  outAreaPos = new Position(52);
-  playerNo = 0;
-  playerName = null;
-  diceBoxId = null;
-  preDiceBoxId = null;
-  rndmNo = null;
-  countSix = 0;
-  cut = false;
-  pass = false;
-  flag = false;
-  winningOrder = [];
-  db.ref(`rooms/${roomId}`).remove();
-}
 
-$("#restart").click(function () {
-  $("#alertBox").css("display", "block");
-});
+  // ---------- State ----------
+  const ACCESS_CODE = '808580';
+  const COLORS = ['R','G','Y','B'];
+  const COLOR_NAME = { R:'Red', G:'Green', Y:'Yellow', B:'Blue' };
+  const COLOR_CLASS = { R:'red', G:'green', Y:'yellow', B:'blue' };
+  let SOUND = true;
 
-$("#ok").click(function () {
-  restartGame();
-  $("#alertBox").css("display", "none");
-});
+  // Board model (simple linear track for demo; replaceable with your existing path if needed)
+  const TRACK_SIZE = 52; // classic ludo perimeter (simplified)
+  const HOME_STEPS = 6;
 
-$("#cancel").click(function () {
-  $("#alertBox").css("display", "none");
-});
+  // Per-player state
+  const makePlayer = (id) => ({
+    id, name: COLOR_NAME[id], class: COLOR_CLASS[id],
+    pawns: [
+      { pos: -1, home:false, el:null },
+      { pos: -1, home:false, el:null },
+      { pos: -1, home:false, el:null },
+      { pos: -1, home:false, el:null }
+    ],
+    entry: entryIndex(id), // starting index on global track
+    homeIndex: null, // handled with 'home steps' in a side lane (abstracted)
+    score: 0, cuts:0, homes:0, active:false
+  });
 
-function soundSettings() {
-  sound = !sound;
-  $("#sound").css("background-image", sound ? "url(../images/sound-on.svg)" : "url(../images/sound-off.svg)");
-}
+  // Game state root
+  const State = {
+    theme: localStorage.getItem('ludo:theme') || 'neon',
+    mode: localStorage.getItem('ludo:mode') || 'single', // 'single' | 'team'
+    playersCount: +(localStorage.getItem('ludo:players') || 4),
+    players: [],
+    turnIdx: 0,
+    rolled: null,
+    cells: [], // DOM refs for cells
+    track: [], // indexes for simple track (0..TRACK_SIZE-1)
+    safeCells: new Set([1,9,14,22,27,35,40,48]), // sample safe cells
+  };
 
-$("#sound").click(soundSettings);
-
-let elem = document.documentElement;
-function openFullscreen() {
-  if (elem.requestFullscreen) {
-    elem.requestFullscreen();
-  } else if (elem.mozRequestFullScreen) {
-    elem.mozRequestFullScreen();
-  } else if (elem.webkitRequestFullscreen) {
-    elem.webkitRequestFullscreen();
-  } else if (elem.msRequestFullscreen) {
-    elem.msRequestFullscreen();
+  // ---------- Login Gate ----------
+  function unlockIfValid(){
+    const v = (gateInput.value || '').trim();
+    if(v === ACCESS_CODE){
+      gate.classList.remove('show');
+      localStorage.setItem('ludo:access','yes');
+    } else {
+      gateErr.textContent = 'Wrong code';
+      shake(gate);
+    }
   }
-  $("#fullscreen").css("display", "none");
-  $("#exitfullscreen").css("display", "inline-block");
-}
+  gateBtn.addEventListener('click', unlockIfValid);
+  gateInput.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') unlockIfValid();
+  });
 
-function joinRoom() {
-  const code = $("#roomCode").val().trim();
-  if (!code) {
-    $("#roomStatus").text("कोड डालें!");
-    return;
+  // Gate autounlock if previously ok
+  if(localStorage.getItem('ludo:access') === 'yes'){
+    gate.classList.remove('show');
   }
-  console.log("Attempting to connect to room:", code); // डिबग लॉग
-  roomId = code;
-  myPlayerId = Math.random().toString(36).substring(2, 10);
-  console.log("My Player ID:", myPlayerId); // डिबग लॉग
-  db.ref(`rooms/${roomId}`).once('value', (snapshot) => {
-    console.log("Snapshot data:", snapshot.val()); // डिबग लॉग
-    let room = snapshot.val() || { players: [], gameState: {}, started: false };
-    if (room.players.length >= 4) {
-      $("#roomStatus").text("रूम फुल है!");
+
+  // ---------- Theme ----------
+  function applyTheme(name){
+    document.body.classList.remove('theme-classic','theme-wood','theme-dark');
+    if(name === 'classic') document.body.classList.add('theme-classic');
+    else if(name === 'wood') document.body.classList.add('theme-wood');
+    else if(name === 'dark') document.body.classList.add('theme-dark');
+    else document.body.classList.remove('theme-classic','theme-wood','theme-dark'); // neon default
+  }
+  themeSelect.value = State.theme;
+  applyTheme(State.theme);
+  themeSelect.addEventListener('change', ()=>{
+    State.theme = themeSelect.value;
+    localStorage.setItem('ludo:theme', State.theme);
+    applyTheme(State.theme);
+  });
+
+  // ---------- Mode / Players ----------
+  modeSelect.value = State.mode;
+  modePill.textContent = State.mode === 'team' ? 'Teams' : 'Single';
+  modeSelect.addEventListener('change', ()=>{
+    State.mode = modeSelect.value;
+    modePill.textContent = State.mode === 'team' ? 'Teams' : 'Single';
+    localStorage.setItem('ludo:mode', State.mode);
+  });
+
+  playersSelect.value = String(State.playersCount);
+  playersSelect.addEventListener('change', ()=>{
+    State.playersCount = +playersSelect.value;
+    localStorage.setItem('ludo:players', String(State.playersCount));
+  });
+
+  // ---------- Fullscreen / Sound ----------
+  fullscreenBtn.addEventListener('click', ()=>{
+    if(!document.fullscreenElement){
+      document.documentElement.requestFullscreen?.();
+    }else{
+      document.exitFullscreen?.();
+    }
+  });
+  soundToggle.addEventListener('click', ()=>{
+    SOUND = !SOUND;
+    soundToggle.textContent = SOUND ? '🔈' : '🔇';
+  });
+
+  // ---------- New Game ----------
+  newGameBtn.addEventListener('click', ()=>startNewGame());
+  resetScoresBtn.addEventListener('click', ()=>{
+    for(const p of State.players){
+      p.score = 0; p.cuts=0; p.homes=0;
+    }
+    updateScoreUI();
+  });
+
+  // ---------- Board Build ----------
+  function buildBoard(){
+    boardEl.innerHTML = '';
+    State.cells = [];
+    State.track = [];
+    // Create a 13x13 grid (with margins defined in CSS grid-template); we will only build playable ring cells
+    // For simplicity here we build 52 sequential cells as inline grid children
+    const grid = document.createDocumentFragment();
+    for(let i=0;i<TRACK_SIZE;i++){
+      const c = document.createElement('div');
+      c.className = 'cell' + (State.safeCells.has(i) ? ' safe' : '');
+      c.dataset.idx = i;
+      grid.appendChild(c);
+      State.cells.push(c);
+      State.track.push(i);
+    }
+    boardEl.appendChild(grid);
+  }
+
+  // ---------- Players & Pawns ----------
+  function createPlayers(){
+    State.players = [];
+    const use = COLORS.slice(0, State.playersCount);
+    for(const id of use){
+      const p = makePlayer(id);
+      State.players.push(p);
+    }
+    // Render pawns at base (-1) visually near each color cluster (we place them on top-left off-board positions)
+    for(const p of State.players){
+      for(let i=0;i<4;i++){
+        const el = document.createElement('div');
+        el.className = `pawn ${p.class}`;
+        el.dataset.player = p.id;
+        el.dataset.idx = String(i);
+        el.style.transform = baseTransform(p.id, i);
+        boardEl.appendChild(el);
+        p.pawns[i].el = el;
+
+        el.addEventListener('click', ()=> onPawnClick(p.id, i));
+      }
+    }
+  }
+
+  function baseTransform(id, i){
+    // place near corners as a visual base; (not exact board homes; for UI only)
+    const pad = 10 + i*6;
+    if(id==='R') return `translate(${pad}px, ${pad}px)`;
+    if(id==='G') return `translate(calc(100% - ${60+pad}px), ${pad}px)`;
+    if(id==='Y') return `translate(${pad}px, calc(100% - ${60+pad}px))`;
+    if(id==='B') return `translate(calc(100% - ${60+pad}px), calc(100% - ${60+pad}px))`;
+    return 'translate(0,0)';
+  }
+
+  // ---------- Turn Handling ----------
+  function startNewGame(){
+    buildBoard();
+    createPlayers();
+    State.turnIdx = 0;
+    State.rolled = null;
+    setTurnUI();
+    rollHint.textContent = 'Tap Roll';
+  }
+
+  function setTurnUI(){
+    const p = current();
+    turnName.textContent = p.name;
+    // Highlight all pawns of current player
+    $$('.pawn').forEach(x=>x.classList.remove('active'));
+    p.pawns.forEach(x=> x.el.classList.add('active'));
+  }
+
+  function current(){ return State.players[State.turnIdx]; }
+  function nextTurn(extra=false){
+    if(extra) return; // On 6 you can keep the turn; basic rule
+    State.turnIdx = (State.turnIdx + 1) % State.players.length;
+    setTurnUI();
+  }
+
+  // ---------- Dice ----------
+  function rollDice(){
+    const value = 1 + Math.floor(Math.random()*6);
+    // 3D orientation mapping
+    const rots = {
+      1: 'rotateX(0deg) rotateY(0deg)',
+      2: 'rotateX(0deg) rotateY(-90deg)',
+      3: 'rotateX(0deg) rotateY(180deg)',
+      4: 'rotateX(0deg) rotateY(90deg)',
+      5: 'rotateX(-90deg) rotateY(0deg)',
+      6: 'rotateX(90deg) rotateY(0deg)'
+    };
+    diceEl.style.transform = rots[value];
+    if(navigator.vibrate) navigator.vibrate([18,30,12]);
+    playSfx('roll');
+    State.rolled = value;
+    rollHint.textContent = `Rolled: ${value}`;
+    return value;
+  }
+
+  rollBtn.addEventListener('click', ()=>{
+    if(gate.classList.contains('show')) return; // locked
+    const v = rollDice();
+    // If no move possible, immediately go next (simple fallback)
+    // In real logic, you should check movable pawns. Here we allow click on a pawn to move.
+    // Auto-extra on 6 will be handled in onPawnClick.
+  });
+
+  function playSfx(type){
+    if(!SOUND) return;
+    // You can attach real files to audio tags in HTML for roll/move/cut/home
+    // Here we just do nothing if not provided
+  }
+
+  // ---------- Pawn Movement (Simplified Engine)
+  function onPawnClick(playerId, pawnIdx){
+    const p = current();
+    if(p.id !== playerId) return; // only current player's pawns
+    const die = State.rolled;
+    if(!die) { shake(rollBtn); return; }
+
+    const pawn = p.pawns[pawnIdx];
+
+    // Opening rule: need 6 to leave base
+    if(pawn.pos < 0){
+      if(die !== 6){ rollHint.textContent = `Need 6 to open`; shake(diceWrap); return; }
+      pawn.pos = p.entry; // enter at start
+      updatePawnPosition(p, pawnIdx);
+      playSfx('move');
+      State.rolled = null;
+      // After opening on 6, player gets extra turn
+      checkCutOrHome(p, pawnIdx); // cut check on first entry is harmless
+      updateScoreUI();
+      return; // same turn (extra)
+    }
+
+    // Move forward
+    let next = (pawn.pos + die) % TRACK_SIZE;
+    // (Home lane simplified): if close to entry - in real Ludo, you enter your colored home lane
+    // Here we simulate 'home' if a pawn completes a full loop and re-crosses its entry with exact roll
+    const wrapped = (pawn.pos < p.entry) && (next >= p.entry);
+    if(wrapped){
+      // If exact landing at entry again -> mark home
+      if(next === p.entry){
+        pawn.pos = -2; // home code
+        pawn.home = true;
+        pawn.el.style.transform = homeTransform(p.id);
+        addHomeScore(p.id);
+        playSfx('home');
+        State.rolled = null;
+        updateScoreUI();
+        nextTurn(die===6); // six already consumed
+        return;
+      }
+    }
+
+    pawn.pos = next;
+    updatePawnPosition(p, pawnIdx);
+    playSfx('move');
+
+    // Check cut
+    checkCutOrHome(p, pawnIdx);
+
+    // Turn logic
+    const extra = (die === 6);
+    State.rolled = null;
+    updateScoreUI();
+    nextTurn(extra);
+  }
+
+  function updatePawnPosition(player, idx){
+    const pawn = player.pawns[idx];
+    if(pawn.pos < 0) { // base or home
+      pawn.el.style.transform = pawn.home ? homeTransform(player.id) : baseTransform(player.id, idx);
       return;
     }
-    room.players.push({ id: myPlayerId, colors: [] });
-    db.ref(`rooms/${roomId}`).set(room)
-      .then(() => {
-        console.log("Room data set successfully"); // डिबग लॉग
-        $("#roomStatus").text("कनेक्टेड! खिलाड़ियों का इंतज़ार...");
-      })
-      .catch((error) => {
-        console.error("Firebase set error:", error); // एरर लॉग
-        $("#roomStatus").text("एरर: कनेक्शन फेल! " + error.message);
-      });
-    // ... बाकी कोड (on value लिसनर)
-  }).catch((error) => {
-    console.error("Firebase read error:", error); // एरर लॉग
-    $("#roomStatus").text("एरर: डेटा पढ़ने में समस्या! " + error.message);
+    // place on track cell center
+    const cell = State.cells[pawn.pos];
+    if(!cell) return;
+    const rect = cell.getBoundingClientRect();
+    const boardRect = boardEl.getBoundingClientRect();
+    const x = (rect.left - boardRect.left) + rect.width/2;
+    const y = (rect.top - boardRect.top) + rect.height/2;
+    pawn.el.style.transform = `translate(${x- (pawn.el.offsetWidth/2)}px, ${y- (pawn.el.offsetHeight/2)}px)`;
+  }
+
+  function homeTransform(id){
+    // park homes near center stripe for the color
+    if(id==='R') return `translate(45%, 40%)`;
+    if(id==='G') return `translate(45%, 20%)`;
+    if(id==='Y') return `translate(20%, 45%)`;
+    if(id==='B') return `translate(65%, 45%)`;
+    return 'translate(50%,50%)';
+  }
+
+  function checkCutOrHome(player, pawnIdx){
+    const pawn = player.pawns[pawnIdx];
+    if(pawn.pos < 0 || pawn.home) return;
+    const here = pawn.pos;
+
+    // Find opponent pawns on same cell (and not safe)
+    if(State.safeCells.has(here)) return;
+
+    for(const op of State.players){
+      if(op.id === player.id) continue;
+      for(const [i,opPawn] of op.pawns.entries()){
+        if(opPawn.pos === here){
+          // Cut opponent: send to base
+          opPawn.pos = -1;
+          opPawn.home = false;
+          updatePawnPosition(op, i);
+          addCutScore(player.id);
+          playSfx('cut');
+          // After cut, current player gets an extra immediate bonus of +1 score already added
+        }
+      }
+    }
+  }
+
+  // ---------- Score ----------
+  const Score = {
+    R: { score:0, cuts:0, homes:0 },
+    G: { score:0, cuts:0, homes:0 },
+    Y: { score:0, cuts:0, homes:0 },
+    B: { score:0, cuts:0, homes:0 },
+  };
+
+  function addCutScore(id){
+    Score[id].cuts += 1;
+    Score[id].score += 1; // +1 per cut
+  }
+  function addHomeScore(id){
+    Score[id].homes += 1;
+    Score[id].score += 5; // +5 per home
+  }
+
+  function updateScoreUI(){
+    scoreEl.R.textContent = Score.R.score;
+    scoreEl.G.textContent = Score.G.score;
+    scoreEl.Y.textContent = Score.Y.score;
+    scoreEl.B.textContent = Score.B.score;
+
+    scoreEl.cutR.textContent = Score.R.cuts;
+    scoreEl.cutG.textContent = Score.G.cuts;
+    scoreEl.cutY.textContent = Score.Y.cuts;
+    scoreEl.cutB.textContent = Score.B.cuts;
+
+    scoreEl.homeR.textContent = Score.R.homes;
+    scoreEl.homeG.textContent = Score.G.homes;
+    scoreEl.homeY.textContent = Score.Y.homes;
+    scoreEl.homeB.textContent = Score.B.homes;
+
+    // Team sums
+    const ry = Score.R.score + Score.Y.score;
+    const gb = Score.G.score + Score.B.score;
+    scoreEl.teamRY.textContent = ry;
+    scoreEl.teamGB.textContent = gb;
+  }
+
+  // ---------- Helpers ----------
+  function shake(el){
+    el.style.transform += ' translateX(0)'; // ensure property exists
+    el.classList.add('shake');
+    setTimeout(()=> el.classList.remove('shake'), 320);
+  }
+
+  // Simple CSS helper for shake
+  const style = document.createElement('style');
+  style.textContent = `
+  .shake{animation:shake .32s}
+  @keyframes shake{
+    0%{transform:translateX(0)}
+    25%{transform:translateX(-4px)}
+    50%{transform:translateX(4px)}
+    75%{transform:translateX(-2px)}
+    100%{transform:translateX(0)}
+  }`;
+  document.head.appendChild(style);
+
+  // Starting index per color (simplified distinct offsets)
+  function entryIndex(id){
+    if(id==='R') return 0;
+    if(id==='G') return 13;
+    if(id==='Y') return 26;
+    if(id==='B') return 39;
+    return 0;
+  }
+
+  // ---------- Resize observer to keep pawns centered on cells after layout changes ----------
+  const ro = new ResizeObserver(()=>{
+    // Recompute displayed positions for all pawns on track
+    for(const p of State.players){
+      for(let i=0;i<4;i++){
+        const pawn = p.pawns[i];
+        if(pawn.pos >= 0) updatePawnPosition(p, i);
+        else {
+          pawn.el.style.transform = pawn.home ? homeTransform(p.id) : baseTransform(p.id, i);
+        }
+      }
+    }
   });
-}
+  ro.observe(boardEl);
 
-    
-function closeFullscreen() {
-  if (document.exitFullscreen) {
-    document.exitFullscreen();
-  } else if (document.mozCancelFullScreen) {
-    document.mozCancelFullScreen();
-  } else if (document.webkitExitFullscreen) {
-    document.webkitExitFullscreen();
-  } else if (document.msExitFullscreen) {
-    document.msExitFullscreen();
-  }
-  $("#exitfullscreen").css("display", "none");
-  $("#fullscreen").css("display", "inline-block");
-}
+  // ---------- Init ----------
+  startNewGame();
 
-document.addEventListener("fullscreenchange", () => {
-  if (document.fullscreenElement) {
-    $("#fullscreen").css("display", "none");
-    $("#exitfullscreen").css("display", "inline-block");
-  } else {
-    $("#exitfullscreen").css("display", "none");
-    $("#fullscreen").css("display", "inline-block");
-  }
-});
+  // ---------- Team Mode behavior ----------
+  // For team mode we keep normal turn order but you can visually see team sums on the scoreboard.
+  modeSelect.addEventListener('change', ()=>{
+    // No special turn logic change; team sums already computed in updateScoreUI.
+  });
 
-$("#fullscreen").click(openFullscreen);
-$("#exitfullscreen").click(closeFullscreen);
-
-// Sync game state from Firebase
-db.ref(`rooms/${roomId}/gameState`).on('value', (snapshot) => {
-  const state = snapshot.val();
-  if (!state) return;
-  players = state.players || players;
-  outAreaPos = state.outAreaPos || outAreaPos;
-  winningOrder = state.winningOrder || winningOrder;
-  playerNo = state.playerNo || playerNo;
-  playerName = state.playerName || playerName;
-  rndmNo = state.rndmNo || rndmNo;
-  // Update UI
-  for (let color of ['r', 'g', 'y', 'b']) {
-    let pName = color + "Player";
-    for (let pawn of players[pName].inArea) {
-      let no = getNoFromValue(pawn);
-      $(`#in-${color}-${no}`).append(`<div class="${pawn}"></div>`);
-    }
-    for (let pawn of players[pName].outArea) {
-      let pos = outAreaPos.findIndex(arr => arr.includes(pawn)) + 1;
-      let wh = getUpdatedWHoutAreaPos(pos);
-      $(`#out${pos}`).append(`<div class="${pawn}" style="width:${wh[0]}%; height:${wh[1]}%;"></div>`);
-    }
-    for (let pawn of players[pName].privateArea) {
-      let pos = players[pName].privateAreaPos.findIndex(arr => arr.includes(pawn)) + 1;
-      let wh = getUpdatedWHprivateAreaPos(pos);
-      $(`#${color}-out-${pos}`).append(`<div class="${pawn}" style="width:${wh[0]}%; height:${wh[1]}%;"></div>`);
-    }
-    for (let pawn of players[pName].winArea) {
-      $(`#${color}-win-pawn-box`).append(`<div class="${pawn}"></div>`);
-      updateWinAreaCss(pName, color);
-    }
-  }
-  if (state.currentPlayer === myPlayerId) {
-    enable
+})();
