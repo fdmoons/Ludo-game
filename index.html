@@ -1,7 +1,6 @@
 <!-- v1.1 -->
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <title>Play Ludo Online</title>
     <meta charset="UTF-8">
@@ -18,7 +17,6 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
 </head>
-
 <body>
     <div id="home-container">
         <div id="home">
@@ -30,18 +28,16 @@
                     Play Ludo Online
                 </div>
             </div>
-            <div id="roomBox">
-                <input id="roomCode" type="text" placeholder="कोड डालें (जैसे 808580)" required>
-                <button id="connectBtn">कनेक्ट करें</button>
-                <div id="roomStatus" style="color: red; margin-top: 10px;"></div>
+            <div id="modeBox">
+                <div id="singleMode" class="modeOption selected">Single Mode</div>
+                <div id="doubleMode" class="modeOption">Double Mode</div>
             </div>
             <div id="noOfplayerBox" style="display: none;">
                 <div id="twoPlayer" class="noOfPlayer">2P</div>
                 <div id="threePlayer" class="noOfPlayer">3P</div>
                 <div id="fourPlayer" class="noOfPlayer selected">4P</div>
-                <label><input type="checkbox" id="teamMode"> Team Mode (2 रंग प्रति प्लेयर)</label>
             </div>
-            <button id="startGame" style="display: none;">Start</button>
+            <button id="startGame">Start</button>
         </div>
         <div id="owner">Made By <a href="https://github.com/vishalmishra090">Vishal Mishra</a></div>
     </div>
@@ -473,9 +469,6 @@
         <img src="images/wood-Board.jpg" />
     </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js"></script>
     <script src="script/ludo-game.js"></script>
 </body>
-
 </html>
