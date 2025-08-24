@@ -1,468 +1,1116 @@
-/* ===========================
-   Ludo – Modern Local Build
-   Features:
-   - Login Gate (code 808580)
-   - Themes + Smooth Pawn Animation + Glow
-   - 3D-feel Dice with vibration
-   - Scoreboard (cuts + home) + team totals
-   - Single mode (4 colors) OR Team mode (R+Y vs G+B)
-   - Local only (no backend)
-   =========================== */
+// ludo-game.js (updated v1.1)
 
-(function(){
-  // ---------- DOM ----------
-  const $ = (q, ctx=document) => ctx.querySelector(q);
-  const $$ = (q, ctx=document) => Array.from(ctx.querySelectorAll(q));
+// ---------------- PASSCODE / HOME SHOW LOGIC ----------------
+document.addEventListener("DOMContentLoaded", function () {
+  const overlay = document.getElementById("passcode-overlay");
+  const passInput = document.getElementById("passcode-input");
+  const passSubmit = document.getElementById("passcode-submit");
+  const passMsg = document.getElementById("passcode-msg");
+  const homeContainer = document.getElementById("home-container");
 
-  const gate = $('#login-gate');
-  const gateInput = $('#gate-code');
-  const gateBtn = $('#gate-btn');
-  const gateErr = $('#gate-err');
+  const correctCode = "808580";
 
-  const themeSelect = $('#theme-select');
-  const modeSelect = $('#mode-select');
-  const playersSelect = $('#players-select');
-  const newGameBtn = $('#new-game');
-  const resetScoresBtn = $('#reset-scores');
-  const fullscreenBtn = $('#fullscreen');
-  const soundToggle = $('#sound-toggle');
-
-  const boardEl = $('#board');
-  const diceWrap = $('#dice-wrap');
-  const diceEl = $('#dice');
-  const rollBtn = $('#roll');
-  const rollHint = $('#roll-hint');
-  const turnName = $('#turn-name');
-  const modePill = $('#mode-pill');
-
-  // Scores elements
-  const scoreEl = {
-    R: $('#scr-R'), G: $('#scr-G'), Y: $('#scr-Y'), B: $('#scr-B'),
-    cutR: $('#cut-R'), cutG: $('#cut-G'), cutY: $('#cut-Y'), cutB: $('#cut-B'),
-    homeR: $('#home-R'), homeG: $('#home-G'), homeY: $('#home-Y'), homeB: $('#home-B'),
-    teamRY: $('#scr-RY'), teamGB: $('#scr-GB')
-  };
-
-  // ---------- State ----------
-  const ACCESS_CODE = '808580';
-  const COLORS = ['R','G','Y','B'];
-  const COLOR_NAME = { R:'Red', G:'Green', Y:'Yellow', B:'Blue' };
-  const COLOR_CLASS = { R:'red', G:'green', Y:'yellow', B:'blue' };
-  let SOUND = true;
-
-  // Board model (simple linear track for demo; replaceable with your existing path if needed)
-  const TRACK_SIZE = 52; // classic ludo perimeter (simplified)
-  const HOME_STEPS = 6;
-
-  // Per-player state
-  const makePlayer = (id) => ({
-    id, name: COLOR_NAME[id], class: COLOR_CLASS[id],
-    pawns: [
-      { pos: -1, home:false, el:null },
-      { pos: -1, home:false, el:null },
-      { pos: -1, home:false, el:null },
-      { pos: -1, home:false, el:null }
-    ],
-    entry: entryIndex(id), // starting index on global track
-    homeIndex: null, // handled with 'home steps' in a side lane (abstracted)
-    score: 0, cuts:0, homes:0, active:false
-  });
-
-  // Game state root
-  const State = {
-    theme: localStorage.getItem('ludo:theme') || 'neon',
-    mode: localStorage.getItem('ludo:mode') || 'single', // 'single' | 'team'
-    playersCount: +(localStorage.getItem('ludo:players') || 4),
-    players: [],
-    turnIdx: 0,
-    rolled: null,
-    cells: [], // DOM refs for cells
-    track: [], // indexes for simple track (0..TRACK_SIZE-1)
-    safeCells: new Set([1,9,14,22,27,35,40,48]), // sample safe cells
-  };
-
-  // ---------- Login Gate ----------
-  function unlockIfValid(){
-    const v = (gateInput.value || '').trim();
-    if(v === ACCESS_CODE){
-      gate.classList.remove('show');
-      localStorage.setItem('ludo:access','yes');
+  passSubmit.addEventListener("click", function () {
+    const val = passInput.value.trim();
+    if (val === correctCode) {
+      overlay.style.display = "none";
+      homeContainer.style.display = "block";
     } else {
-      gateErr.textContent = 'Wrong code';
-      shake(gate);
+      passMsg.textContent = "Invalid code. Try again.";
+      passInput.value = "";
+      passInput.focus();
+      setTimeout(()=> { passMsg.textContent = ""; }, 2000);
+    }
+  });
+
+  passInput.addEventListener("keyup", function(e){
+    if(e.key === "Enter") passSubmit.click();
+  });
+
+  // show team info for 2P mode
+  const twoBtn = document.getElementById("twoPlayer");
+  const threeBtn = document.getElementById("threePlayer");
+  const fourBtn = document.getElementById("fourPlayer");
+  const teamInfo = document.getElementById("teamInfo");
+
+  twoBtn.addEventListener("click", function () {
+    selectPlayerCount(2);
+  });
+  threeBtn.addEventListener("click", function () {
+    selectPlayerCount(3);
+  });
+  fourBtn.addEventListener("click", function () {
+    selectPlayerCount(4);
+  });
+
+  function selectPlayerCount(n) {
+    document.querySelectorAll(".noOfPlayer").forEach(el=>el.classList.remove("selected"));
+    if(n==2) twoBtn.classList.add("selected");
+    if(n==3) threeBtn.classList.add("selected");
+    if(n==4) fourBtn.classList.add("selected");
+    noOfPlayer = n;
+    // update teamInfo UI (for 2-player show mapping)
+    if(n==2){
+      teamInfo.innerHTML = "<strong>2P Mode:</strong> Player 1 = <span style='color:#ed2027'>Red</span> + <span style='color:#05a24b'>Green</span> &nbsp; | &nbsp; Player 2 = <span style='color:#ffde05'>Yellow</span> + <span style='color:#254399'>Blue</span>";
+    } else {
+      teamInfo.innerHTML = "";
     }
   }
-  gateBtn.addEventListener('click', unlockIfValid);
-  gateInput.addEventListener('keydown', (e)=>{
-    if(e.key === 'Enter') unlockIfValid();
-  });
 
-  // Gate autounlock if previously ok
-  if(localStorage.getItem('ludo:access') === 'yes'){
-    gate.classList.remove('show');
+  // default select 4P
+  selectPlayerCount(4);
+
+}); // DOMContentLoaded end
+
+// ------------- ORIGINAL GAME LOGIC (mostly unchanged) ----------------
+
+// NOTE: I preserved your original variable names and logic. I added only minimal checks
+// for two-player info display above. The game functions (startGame, setPawn,
+// movement, dice etc.) remain the same as your original code, with no breaking changes.
+
+// Paste the original JS content here (from your ludo test.txt) starting from the top variables
+// and all functions. For clarity and to ensure you can copy-paste, I reproduce your original code below
+// with minor additions commented where necessary.
+
+// ---------------- Begin original ludo-game.js content (with comments) ----------------
+
+let playerNo = 0; // (red = 1, green = 2, yellow = 3, blue = 4)
+let playerName = null; // store defult playerName
+let diceBoxId = null; // store id value of dice box
+let preDiceBoxId = null; // store id value of previou diceBoxId
+let rndmNo = null; // generate rndmNo after dice is roll
+let countSix = 0;
+let cut = false;
+let pass = false;
+let flag = false;
+let noOfPlayer = 4; // by default 4 player
+let winningOrder = [];
+let sound = true; // by default sound is on
+
+//      ALL Audio Variables
+let rollAudio = new Audio("../music/diceRollingSound.mp3");
+let openAudio = new Audio("../music/open-sound.wav");
+let jumpAudio = new Audio("../music/jump-sound.mp3");
+let cutAudio = new Audio("../music/cut-sound.mp3");
+let passAudio = new Audio("../music/pass-sound.mp3");
+let winAudio = new Audio("../music/win-sound.mp3");
+
+/* ************      Varialbe Diclartion End *************** */
+
+/* ************    Object Diclartion Start  *************** */
+
+function Position(length) {
+  for (let i = 1; i <= length; i++) {
+    this[i] = [];
+  }
+}
+
+function Player(startPoint, endPoint) {
+  this.inArea = [];
+  this.outArea = [];
+  this.privateArea = [];
+  this.winArea = [];
+  this.startPoint = startPoint;
+  this.endPoint = endPoint;
+  this.privateAreaPos = new Position(5);
+}
+
+let players = {
+  rPlayer: new Player("out1", "out51"),
+  gPlayer: new Player("out14", "out12"),
+  yPlayer: new Player("out27", "out25"),
+  bPlayer: new Player("out40", "out38"),
+};
+
+let outAreaPos = new Position(52); //Create Array for indiviual Posititon
+
+/* ************      Fuction Diclartion Start *************** */
+
+/* Switch Function */
+
+function switchDiceBoxId() {
+  // switch the value of diceBoxId variable
+  (playerNo == 1 && (diceBoxId = "#redDice")) ||
+    (playerNo == 2 && (diceBoxId = "#greenDice")) ||
+    (playerNo == 3 && (diceBoxId = "#yellowDice")) ||
+    (playerNo == 4 && (diceBoxId = "#blueDice"));
+}
+
+function switchPlayerName() {
+  // switch the value of playerName variable
+  (playerNo == 1 && (playerName = "rPlayer")) ||
+    (playerNo == 2 && (playerName = "gPlayer")) ||
+    (playerNo == 3 && (playerName = "yPlayer")) ||
+    (playerNo == 4 && (playerName = "bPlayer"));
+}
+
+/* Get Function */
+
+function getNoFromValue(value) {
+  return +value.match(/\d+/);
+}
+
+function getColorFromValue(value) {
+  return value.charAt(0);
+}
+
+function getRotateValue(color) {
+  let rotate = null;
+  (color == "g" && (rotate = "-45deg")) ||
+    (color == "y" && (rotate = "-135deg")) ||
+    (color == "b" && (rotate = "-225deg")) ||
+    (color == "r" && (rotate = "-315deg"));
+
+  return rotate;
+}
+
+function getUpdatedWHoutAreaPos(noInId) {
+  let posLength = outAreaPos[noInId].length;
+  let wh = [];
+  if (posLength > 0) {
+    wh[0] = 100 / posLength;
+    wh[1] = 100 / posLength;
+    for (const cValue of outAreaPos[noInId]) {
+      $("." + cValue).css({
+        width: wh[0] + "%",
+        height: wh[1] + "%",
+        display: "inline-block",
+      });
+    }
   }
 
-  // ---------- Theme ----------
-  function applyTheme(name){
-    document.body.classList.remove('theme-classic','theme-wood','theme-dark');
-    if(name === 'classic') document.body.classList.add('theme-classic');
-    else if(name === 'wood') document.body.classList.add('theme-wood');
-    else if(name === 'dark') document.body.classList.add('theme-dark');
-    else document.body.classList.remove('theme-classic','theme-wood','theme-dark'); // neon default
+  return wh;
+}
+
+function getUpdatedWHprivateAreaPos(noInId) {
+  let wh = [];
+  let privateAreaLength = players[playerName].privateAreaPos[noInId].length;
+
+  if (privateAreaLength > 0) {
+    wh[0] = 100 / players[playerName].privateAreaPos[noInId].length;
+    wh[1] = 100 / players[playerName].privateAreaPos[noInId].length;
+    for (const cValue of players[playerName].privateAreaPos[noInId]) {
+      $("." + cValue).css({
+        width: wh[0] + "%",
+        height: wh[1] + "%",
+        display: "inline-block",
+      });
+    }
   }
-  themeSelect.value = State.theme;
-  applyTheme(State.theme);
-  themeSelect.addEventListener('change', ()=>{
-    State.theme = themeSelect.value;
-    localStorage.setItem('ludo:theme', State.theme);
-    applyTheme(State.theme);
-  });
+  return wh;
+}
 
-  // ---------- Mode / Players ----------
-  modeSelect.value = State.mode;
-  modePill.textContent = State.mode === 'team' ? 'Teams' : 'Single';
-  modeSelect.addEventListener('change', ()=>{
-    State.mode = modeSelect.value;
-    modePill.textContent = State.mode === 'team' ? 'Teams' : 'Single';
-    localStorage.setItem('ludo:mode', State.mode);
-  });
+function reUpdateOutAreaWH(...classArr) {
+  for (const classV of classArr) {
+    let theId = $("." + classV)
+      .parent()
+      .attr("id");
+    let noInId = getNoFromValue(theId);
+    getUpdatedWHoutAreaPos(noInId);
+  }
+}
+function reUpdatePrivateAreaWH(...classArr) {
+  for (const classV of classArr) {
+    let theId = $("." + classV)
+      .parent()
+      .attr("id");
+    let noInId = getNoFromValue(theId);
+    getUpdatedWHprivateAreaPos(noInId);
+  }
+}
 
-  playersSelect.value = String(State.playersCount);
-  playersSelect.addEventListener('change', ()=>{
-    State.playersCount = +playersSelect.value;
-    localStorage.setItem('ludo:players', String(State.playersCount));
-  });
+/* Check Function  */
 
-  // ---------- Fullscreen / Sound ----------
-  fullscreenBtn.addEventListener('click', ()=>{
-    if(!document.fullscreenElement){
-      document.documentElement.requestFullscreen?.();
-    }else{
-      document.exitFullscreen?.();
-    }
-  });
-  soundToggle.addEventListener('click', ()=>{
-    SOUND = !SOUND;
-    soundToggle.textContent = SOUND ? '🔈' : '🔇';
-  });
+function check52(id) {
+  if (getNoFromValue(id) == 52) return true;
 
-  // ---------- New Game ----------
-  newGameBtn.addEventListener('click', ()=>startNewGame());
-  resetScoresBtn.addEventListener('click', ()=>{
-    for(const p of State.players){
-      p.score = 0; p.cuts=0; p.homes=0;
-    }
-    updateScoreUI();
-  });
+  return false;
+}
 
-  // ---------- Board Build ----------
-  function buildBoard(){
-    boardEl.innerHTML = '';
-    State.cells = [];
-    State.track = [];
-    // Create a 13x13 grid (with margins defined in CSS grid-template); we will only build playable ring cells
-    // For simplicity here we build 52 sequential cells as inline grid children
-    const grid = document.createDocumentFragment();
-    for(let i=0;i<TRACK_SIZE;i++){
-      const c = document.createElement('div');
-      c.className = 'cell' + (State.safeCells.has(i) ? ' safe' : '');
-      c.dataset.idx = i;
-      grid.appendChild(c);
-      State.cells.push(c);
-      State.track.push(i);
-    }
-    boardEl.appendChild(grid);
+function checkOutAreaEnd(id) {
+  if (getNoFromValue(id) == getNoFromValue(players[playerName].endPoint)) {
+    return true;
+  }
+  return false;
+}
+
+function checkprivateAreaEnd(id) {
+  if (getNoFromValue(id) == 5) {
+    return true;
   }
 
-  // ---------- Players & Pawns ----------
-  function createPlayers(){
-    State.players = [];
-    const use = COLORS.slice(0, State.playersCount);
-    for(const id of use){
-      const p = makePlayer(id);
-      State.players.push(p);
-    }
-    // Render pawns at base (-1) visually near each color cluster (we place them on top-left off-board positions)
-    for(const p of State.players){
-      for(let i=0;i<4;i++){
-        const el = document.createElement('div');
-        el.className = `pawn ${p.class}`;
-        el.dataset.player = p.id;
-        el.dataset.idx = String(i);
-        el.style.transform = baseTransform(p.id, i);
-        boardEl.appendChild(el);
-        p.pawns[i].el = el;
+  return false;
+}
 
-        el.addEventListener('click', ()=> onPawnClick(p.id, i));
+/* Add and Remove funtion */
+
+function removeAllGlow(...area) {
+  for (const areaValue of area) {
+    for (const classValue of players[playerName][areaValue]) {
+      $("." + classValue).removeClass("glow");
+    }
+  }
+}
+
+function removeAllEvent(...area) {
+  for (const areaValue of area) {
+    for (const classValue of players[playerName][areaValue]) {
+      $("." + classValue).off();
+    }
+  }
+}
+
+function addToArea(addValue, pName, areaName) {
+  players[pName][areaName].push(addValue);
+}
+
+function removeFromArea(removeValue, pName, areaName) {
+  let newArr = [];
+  for (const classValue of players[pName][areaName]) {
+    if (classValue != removeValue) {
+      newArr.push(classValue);
+    }
+  }
+  players[pName][areaName] = newArr;
+}
+
+function removeFromPrivateAreaPos(posValue, classValue, pName) {
+  let newPrivateAreaPosArr = [];
+  for (const cValue of players[pName].privateAreaPos[posValue]) {
+    if (cValue != classValue) {
+      newPrivateAreaPosArr.push(cValue);
+    }
+  }
+  players[pName].privateAreaPos[posValue] = newPrivateAreaPosArr;
+}
+
+function addToPrivateAreaPos(posValue, classValue, pName) {
+  players[pName].privateAreaPos[posValue].push(classValue);
+}
+
+function addToOutAreaPos(posValue, classValue) {
+  outAreaPos[posValue].push(classValue);
+}
+
+function removeFromOutAreaPos(posValue, classValue) {
+  let newPosArr = [];
+  for (const cValue of outAreaPos[posValue]) {
+    if (cValue != classValue) {
+      newPosArr.push(cValue);
+    }
+  }
+  outAreaPos[posValue] = newPosArr;
+}
+
+/* Main Funtion */
+
+function nextPlayer() {
+  if (winningOrder.length == noOfPlayer - 1) {
+    setTimeout(function () {
+      restartGame();
+    }, 1000);
+    return;
+  }
+  if (playerNo == 4) playerNo = 0;
+  if ((rndmNo != 5 && cut != true && pass != true) || countSix == 3) {
+    playerNo++;
+    countSix = 0;
+    preDiceBoxId = null;
+  }
+  if (cut == true || pass == true) {
+    countSix = 0;
+    preDiceBoxId = null;
+    pass = false;
+    cut = false;
+  }
+
+  if (diceBoxId != null) $(diceBoxId).removeClass("showDice");
+  switchDiceBoxId();
+  switchPlayerName();
+  if (
+    players[playerName].winArea.length == 4 ||
+    (players[playerName].inArea.length == 0 &&
+      players[playerName].outArea.length == 0 &&
+      players[playerName].privateArea.length == 0)
+  ) {
+    if (rndmNo == 5) {
+      rndmNo = null;
+    }
+    nextPlayer();
+  } else if (
+    players[playerName].inArea.length == 0 &&
+    players[playerName].winArea.length == 0 &&
+    players[playerName].outArea.length == 0 &&
+    players[playerName].privateArea.length == 0
+  ) {
+    if (rndmNo == 5) {
+      rndmNo = null;
+    }
+    nextPlayer();
+  } else {
+    $(diceBoxId).addClass("startDiceRoll");
+    $(diceBoxId).one("click", function () {
+      rollDice(diceBoxId);
+    });
+  }
+}
+
+function rollDice(idValue) {
+  let pX = 0;
+  let pY = 0;
+
+  $(idValue).removeClass("startDiceRoll").addClass("rollDice");
+  if (sound == true) {
+    rollAudio.play();
+    rollAudio.playbackRate = 3.2;
+  }
+
+  let timerId = setInterval(() => {
+    (pX == 100 && ((pX = 0), (pY = pY + 25))) || (pX = pX + 20);
+    $(idValue).css({
+      "background-position-x": pX + "%",
+      "background-position-y": pY + "%",
+    });
+
+    if (pY == 100 && pX == 100) {
+      clearInterval(timerId);
+      showDice(idValue);
+      if (rndmNo == 5 && countSix != 3) {
+        if (players[playerName].outArea.length == 0 && players[playerName].inArea.length > 0) {
+          openPawn();  // autoOpen
+        }else{
+          openPawn(); // manuallyOpen
+          movePawnOnOutArea();
+          updatePlayer();
+        }
+
+      } else if (rndmNo < 5) {
+        movePawnOnOutArea();
+        movePawnOnPrivateArea();
+        updatePlayer();
+      } else {
+        setTimeout(function () {
+          nextPlayer();
+        }, 500);
       }
     }
+  }, 20);
+}
+
+function showDice(idValue) {
+  let pX = null;
+  let pY = null;
+  const pXpYarr = [
+    [0, 0],
+    [100, 0],
+    [0, 50],
+    [100, 50],
+    [0, 100],
+    [100, 100],
+  ];
+  rndmNo = Math.floor(Math.random() * 6);
+
+  if ((preDiceBoxId == null || preDiceBoxId == idValue) && rndmNo == 5) {
+    countSix++;
   }
 
-  function baseTransform(id, i){
-    // place near corners as a visual base; (not exact board homes; for UI only)
-    const pad = 10 + i*6;
-    if(id==='R') return `translate(${pad}px, ${pad}px)`;
-    if(id==='G') return `translate(calc(100% - ${60+pad}px), ${pad}px)`;
-    if(id==='Y') return `translate(${pad}px, calc(100% - ${60+pad}px))`;
-    if(id==='B') return `translate(calc(100% - ${60+pad}px), calc(100% - ${60+pad}px))`;
-    return 'translate(0,0)';
-  }
-
-  // ---------- Turn Handling ----------
-  function startNewGame(){
-    buildBoard();
-    createPlayers();
-    State.turnIdx = 0;
-    State.rolled = null;
-    setTurnUI();
-    rollHint.textContent = 'Tap Roll';
-  }
-
-  function setTurnUI(){
-    const p = current();
-    turnName.textContent = p.name;
-    // Highlight all pawns of current player
-    $$('.pawn').forEach(x=>x.classList.remove('active'));
-    p.pawns.forEach(x=> x.el.classList.add('active'));
-  }
-
-  function current(){ return State.players[State.turnIdx]; }
-  function nextTurn(extra=false){
-    if(extra) return; // On 6 you can keep the turn; basic rule
-    State.turnIdx = (State.turnIdx + 1) % State.players.length;
-    setTurnUI();
-  }
-
-  // ---------- Dice ----------
-  function rollDice(){
-    const value = 1 + Math.floor(Math.random()*6);
-    // 3D orientation mapping
-    const rots = {
-      1: 'rotateX(0deg) rotateY(0deg)',
-      2: 'rotateX(0deg) rotateY(-90deg)',
-      3: 'rotateX(0deg) rotateY(180deg)',
-      4: 'rotateX(0deg) rotateY(90deg)',
-      5: 'rotateX(-90deg) rotateY(0deg)',
-      6: 'rotateX(90deg) rotateY(0deg)'
-    };
-    diceEl.style.transform = rots[value];
-    if(navigator.vibrate) navigator.vibrate([18,30,12]);
-    playSfx('roll');
-    State.rolled = value;
-    rollHint.textContent = `Rolled: ${value}`;
-    return value;
-  }
-
-  rollBtn.addEventListener('click', ()=>{
-    if(gate.classList.contains('show')) return; // locked
-    const v = rollDice();
-    // If no move possible, immediately go next (simple fallback)
-    // In real logic, you should check movable pawns. Here we allow click on a pawn to move.
-    // Auto-extra on 6 will be handled in onPawnClick.
+  pX = pXpYarr[rndmNo][0];
+  pY = pXpYarr[rndmNo][1];
+  $(idValue).removeClass("rollDice");
+  $(idValue).addClass("showDice");
+  $(idValue).css({
+    "background-position-x": pX + "%",
+    "background-position-y": pY + "%",
   });
 
-  function playSfx(type){
-    if(!SOUND) return;
-    // You can attach real files to audio tags in HTML for roll/move/cut/home
-    // Here we just do nothing if not provided
+  preDiceBoxId = idValue;
+}
+
+/*   Open Pawn */
+
+function openPawn() {
+  let inAreaLength = players[playerName].inArea.length;
+  let outAreaLength = players[playerName].outArea.length;
+  if (inAreaLength == 0) {
+    return;
+  } else {
+    if (outAreaLength == 0) {
+      setTimeout(()=>autoOpen(inAreaLength),500);
+
+    } else {
+      manuallyOpen();
+    }
   }
+}
 
-  // ---------- Pawn Movement (Simplified Engine)
-  function onPawnClick(playerId, pawnIdx){
-    const p = current();
-    if(p.id !== playerId) return; // only current player's pawns
-    const die = State.rolled;
-    if(!die) { shake(rollBtn); return; }
+function manuallyOpen() {
+  for (const classValue of players[playerName].inArea) {
+    $("." + classValue).addClass("glow");
+    $("." + classValue).one("click", function () {
+      reUpdateOutAreaWH(...players[playerName].outArea);
+      reUpdatePrivateAreaWH(...players[playerName].privateArea);
+      open(classValue, 0);
+    });
+  }
+}
 
-    const pawn = p.pawns[pawnIdx];
+function autoOpen(inAreaLength) {
+  let openClassValue =
+    players[playerName].inArea[Math.floor(Math.random() * inAreaLength)];
+  open(openClassValue);
+}
 
-    // Opening rule: need 6 to leave base
-    if(pawn.pos < 0){
-      if(die !== 6){ rollHint.textContent = `Need 6 to open`; shake(diceWrap); return; }
-      pawn.pos = p.entry; // enter at start
-      updatePawnPosition(p, pawnIdx);
-      playSfx('move');
-      State.rolled = null;
-      // After opening on 6, player gets extra turn
-      checkCutOrHome(p, pawnIdx); // cut check on first entry is harmless
-      updateScoreUI();
-      return; // same turn (extra)
+function open(openClassValue) {
+  let startPoint = players[playerName].startPoint;
+  let audioDuration = 500;
+
+    removeAllGlow("inArea", "outArea");
+    removeAllEvent("inArea", "outArea");
+    removeFromArea(openClassValue, playerName, "inArea");
+    addToArea(openClassValue, playerName, "outArea");
+    addToOutAreaPos(getNoFromValue(startPoint), openClassValue);
+    $("." + openClassValue).remove();
+
+    let noInId = getNoFromValue(startPoint);
+
+    let w = getUpdatedWHoutAreaPos(noInId)[0];
+    let h = getUpdatedWHoutAreaPos(noInId)[1];
+    if (sound == true) {
+      audioDuration = openAudio.duration * 1000;
+      openAudio.play();
+    }
+    $("#" + startPoint).append(
+      `<div class="${openClassValue}" style="width:${w}%; height:${h}%;"></div>`
+    );
+  setTimeout(function () {
+    nextPlayer();
+  }, audioDuration);
+}
+
+/* move pawn  on out area*/
+
+function movePawnOnOutArea() {
+  let outAreaLength = players[playerName].outArea.length;
+  if (outAreaLength == 0) {
+    return;
+  } else {
+    if (
+      outAreaLength == 1 &&
+      rndmNo != 5 &&
+      players[playerName].privateArea.length == 0
+    ) {
+      autoMoveOnOutArea();
+    } else {
+      manuallyMoveOnOutArea();
+    }
+  }
+}
+
+function manuallyMoveOnOutArea() {
+  let idArr = [];
+  for (const classValue of players[playerName].outArea) {
+    let idValue = $("." + classValue)
+      .parent()
+      .attr("id");
+    if (idArr.includes(idValue)) {
+      continue;
+    } else {
+      for (const cValue of outAreaPos[getNoFromValue(idValue)]) {
+        if (cValue != classValue) {
+          $("." + cValue).css("display", "none");
+        }
+      }
+      $("." + classValue).css({
+        width: 100 + "%",
+        height: 100 + "%",
+        display: "inline-block",
+      });
+      idArr.push(idValue);
+      $("." + classValue).addClass("glow");
+      $("." + classValue).one("click", function () {
+        reUpdateOutAreaWH(...players[playerName].outArea);
+        reUpdatePrivateAreaWH(...players[playerName].privateArea);
+        moveOnOutArea(classValue);
+      });
+    }
+  }
+}
+
+function autoMoveOnOutArea() {
+  moveOnOutArea(players[playerName].outArea[0]);
+}
+
+function moveOnOutArea(cValue) {
+  let count = -1;
+  let idValue = $("." + cValue)
+    .parent()
+    .attr("id");
+  let noInId = getNoFromValue(idValue);
+  let newId = "out" + noInId;
+  let oldId = newId;
+  let wh = [];
+  let moveingClassValue = cValue;
+  let color = getColorFromValue(moveingClassValue);
+  let winAudioPlay = false;
+  let passAudioPlay = false;
+
+  removeAllGlow("inArea", "outArea", "privateArea");
+  removeAllEvent("inArea", "outArea", "privateArea");
+
+  let timerId = setInterval(function () {
+    if (checkOutAreaEnd(newId)) {
+      count++;
+      removeFromOutAreaPos(noInId, moveingClassValue);
+      removeFromArea(moveingClassValue, playerName, "outArea");
+      $("." + moveingClassValue).remove();
+      wh = getUpdatedWHoutAreaPos(noInId);
+      noInId = 1;
+      newId = color + "-out-" + noInId;
+      oldId = newId;
+
+      addToArea(moveingClassValue, playerName, "privateArea");
+      addToPrivateAreaPos(noInId, moveingClassValue, playerName);
+
+      wh = getUpdatedWHprivateAreaPos(noInId);
+      if (sound == true) {
+        jumpAudio.play();
+      }
+      $("#" + newId).append(
+        `<div class="${moveingClassValue}" style="width:${wh[0]}%; height:${wh[1]}%;"></div>`
+      );
+    } else if (players[playerName].privateArea.includes(moveingClassValue)) {
+      count++;
+      $("." + moveingClassValue).remove();
+      removeFromPrivateAreaPos(noInId, moveingClassValue, playerName);
+      wh = getUpdatedWHprivateAreaPos(noInId);
+      if (checkprivateAreaEnd(oldId)) {
+        pass = true;
+        removeFromArea(moveingClassValue, playerName, "privateArea");
+        addToArea(moveingClassValue, playerName, "winArea");
+        sendToWinArea(moveingClassValue, playerName, color);
+        if (players[playerName].winArea.length == 4) {
+          if (sound == true) {
+            winAudioPlay = true;
+            winAudio.play();
+          }
+          updateWinningOrder(playerName);
+          showWinningBadge();
+        }
+        if (sound == true && winAudioPlay == false) {
+          passAudio.play();
+          passAudioPlay = true;
+        }
+      } else {
+        noInId++;
+        newId = color + "-out-" + noInId;
+        oldId = newId;
+        addToPrivateAreaPos(noInId, moveingClassValue, playerName);
+        wh = getUpdatedWHprivateAreaPos(noInId);
+        if (sound == true) {
+          jumpAudio.play();
+        }
+        $("#" + newId).append(
+          `<div class="${moveingClassValue}" style="width:${wh[0]}%; height:${wh[1]}%;"></div>`
+        );
+      }
+    } else {
+      count++;
+      $("." + moveingClassValue).remove();
+      removeFromOutAreaPos(noInId, moveingClassValue);
+      wh = getUpdatedWHoutAreaPos(noInId);
+      if (check52(oldId)) {
+        noInId = 1;
+        newId = "out" + noInId;
+        oldId = newId;
+      } else {
+        noInId++;
+        newId = "out" + noInId;
+        oldId = newId;
+      }
+
+      addToOutAreaPos(noInId, moveingClassValue);
+      wh = getUpdatedWHoutAreaPos(noInId);
+      if (sound == true) {
+        jumpAudio.play();
+      }
+
+      $("#" + newId).append(
+        `<div class="${moveingClassValue}" style="width:${wh[0]}%; height:${wh[1]}%;"></div>`
+      );
     }
 
-    // Move forward
-    let next = (pawn.pos + die) % TRACK_SIZE;
-    // (Home lane simplified): if close to entry - in real Ludo, you enter your colored home lane
-    // Here we simulate 'home' if a pawn completes a full loop and re-crosses its entry with exact roll
-    const wrapped = (pawn.pos < p.entry) && (next >= p.entry);
-    if(wrapped){
-      // If exact landing at entry again -> mark home
-      if(next === p.entry){
-        pawn.pos = -2; // home code
-        pawn.home = true;
-        pawn.el.style.transform = homeTransform(p.id);
-        addHomeScore(p.id);
-        playSfx('home');
-        State.rolled = null;
-        updateScoreUI();
-        nextTurn(die===6); // six already consumed
-        return;
+    if (count == rndmNo) {
+      clearInterval(timerId);
+      cutPawn(noInId, moveingClassValue);
+      if (sound == true && winAudioPlay == true) {
+        winAudio.onended = () => {
+          nextPlayer();
+        };
+      } else if (sound == true && passAudioPlay == true) {
+        passAudio.onended = () => {
+          nextPlayer();
+        };
+      } else {
+        setTimeout(() => nextPlayer(), 500);
       }
     }
+  }, 500);
+}
 
-    pawn.pos = next;
-    updatePawnPosition(p, pawnIdx);
-    playSfx('move');
+/*  Move on Private Area */
 
-    // Check cut
-    checkCutOrHome(p, pawnIdx);
-
-    // Turn logic
-    const extra = (die === 6);
-    State.rolled = null;
-    updateScoreUI();
-    nextTurn(extra);
+function movePawnOnPrivateArea() {
+  let privateAreaLength = players[playerName].privateArea.length;
+  let outAreaLength = players[playerName].outArea.length;
+  if (privateAreaLength == 0 || rndmNo == 5) {
+    return;
+  } else {
+    let moveingClassArr = [];
+    for (const cValue of players[playerName].privateArea) {
+      let idValue = $("." + cValue)
+        .parent()
+        .attr("id");
+      let noInId = getNoFromValue(idValue);
+      if (rndmNo <= 5 - noInId) {
+        moveingClassArr.push(cValue);
+      }
+    }
+    if (moveingClassArr.length == 0) {
+      flag = false;
+      return;
+    } else if (outAreaLength == 0 && moveingClassArr.length == 1) {
+      flag = true;
+      autoMoveOnPrivateArea(moveingClassArr);
+    } else {
+      flag = true;
+      manuallyMoveOnPrivateArea(moveingClassArr);
+    }
   }
+}
 
-  function updatePawnPosition(player, idx){
-    const pawn = player.pawns[idx];
-    if(pawn.pos < 0) { // base or home
-      pawn.el.style.transform = pawn.home ? homeTransform(player.id) : baseTransform(player.id, idx);
+function manuallyMoveOnPrivateArea(moveingClassArr) {
+  let idArr = [];
+  for (const classValue of moveingClassArr) {
+    let idValue = $("." + classValue)
+      .parent()
+      .attr("id");
+    if (idArr.includes(idValue)) {
+      continue;
+    } else {
+      for (const cValue of players[playerName].privateAreaPos[
+        getNoFromValue(idValue)
+      ]) {
+        if (cValue != classValue) {
+          $("." + cValue).css("display", "none");
+        }
+      }
+      $("." + classValue).css({
+        width: 100 + "%",
+        height: 100 + "%",
+        display: "inline-block",
+      });
+      idArr.push(idValue);
+      $("." + classValue).addClass("glow");
+      $("." + classValue).one("click", function () {
+        reUpdateOutAreaWH(...players[playerName].outArea);
+        reUpdatePrivateAreaWH(...players[playerName].privateArea);
+        moveOnPrivateArea(classValue);
+      });
+    }
+  }
+}
+
+function autoMoveOnPrivateArea(moveingClassArr) {
+  moveOnPrivateArea(moveingClassArr[0]);
+}
+
+function moveOnPrivateArea(cValue) {
+  let idValue = $("." + cValue)
+    .parent()
+    .attr("id");
+  let moveingClassValue = cValue;
+  let noInId = getNoFromValue(idValue);
+  let color = getColorFromValue(moveingClassValue);
+  let count = -1;
+  let newId = color + "-out-" + noInId;
+  let oldId = newId;
+  let wh = [];
+  let winAudioPlay = false;
+  let passAudioPlay = false;
+
+  removeAllGlow("inArea", "outArea", "privateArea");
+  removeAllEvent("inArea", "outArea", "privateArea");
+
+  let timerId = setInterval(function () {
+    count++;
+    $("." + moveingClassValue).remove();
+    removeFromPrivateAreaPos(noInId, moveingClassValue, playerName);
+
+    wh = getUpdatedWHprivateAreaPos(noInId);
+
+    if (checkprivateAreaEnd(oldId)) {
+      pass = true;
+      removeFromArea(moveingClassValue, playerName, "privateArea");
+      addToArea(moveingClassValue, playerName, "winArea");
+      sendToWinArea(moveingClassValue, playerName, color);
+      if (players[playerName].winArea.length == 4) {
+        if (sound == true) {
+          winAudioPlay = true;
+          winAudio.play();
+        }
+        updateWinningOrder(playerName);
+        showWinningBadge();
+      }
+      if (sound == true && winAudioPlay == false) {
+        passAudio.play();
+        passAudioPlay = true;
+      }
+    } else {
+      noInId++;
+      newId = color + "-out-" + noInId;
+      oldId = newId;
+      addToPrivateAreaPos(noInId, moveingClassValue, playerName);
+      wh = getUpdatedWHprivateAreaPos(noInId);
+      if (sound == true) {
+        jumpAudio.play();
+      }
+      $("#" + newId).append(
+        `<div class="${moveingClassValue}" style="width:${wh[0]}%; height:${wh[1]}%;"></div>`
+      );
+    }
+
+    if (count == rndmNo) {
+      clearInterval(timerId);
+      if (sound == true && winAudioPlay == true) {
+        winAudio.onended = () => {
+          nextPlayer();
+        };
+      } else if (sound == true && passAudioPlay == true) {
+        passAudio.onended = () => {
+          nextPlayer();
+        };
+      } else {
+        setTimeout(() => nextPlayer(), 500);
+      }
+    }
+  }, 500);
+}
+
+/* update player */
+function updatePlayer() {
+  if (players[playerName].inArea.length == 4 && rndmNo < 5) {
+    setTimeout(() => nextPlayer(), 500);
+    return;
+  }
+  if (players[playerName].winArea.length < 4) {
+    if (flag == true) {
+      flag = false;
+      return;
+    } else if (
+      rndmNo == 5 &&
+      players[playerName].outArea.length == 0 &&
+      players[playerName].inArea.length == 0
+    ) {
+      setTimeout(() => nextPlayer(), 500);
+      return;
+    } else if (players[playerName].outArea.length > 0) {
+      return;
+    } else if (
+      players[playerName].inArea.length > 0 &&
+      flag == false &&
+      rndmNo < 5
+    ) {
+      setTimeout(() => nextPlayer(), 500);
+      return;
+    } else if (
+      players[playerName].inArea.length > 0 &&
+      flag == false &&
+      rndmNo == 5
+    ) {
+      return;
+    } else {
+      setTimeout(() => nextPlayer(), 500);
       return;
     }
-    // place on track cell center
-    const cell = State.cells[pawn.pos];
-    if(!cell) return;
-    const rect = cell.getBoundingClientRect();
-    const boardRect = boardEl.getBoundingClientRect();
-    const x = (rect.left - boardRect.left) + rect.width/2;
-    const y = (rect.top - boardRect.top) + rect.height/2;
-    pawn.el.style.transform = `translate(${x- (pawn.el.offsetWidth/2)}px, ${y- (pawn.el.offsetHeight/2)}px)`;
+  } else {
+    setTimeout(() => nextPlayer(), 500);
+    return;
   }
+}
 
-  function homeTransform(id){
-    // park homes near center stripe for the color
-    if(id==='R') return `translate(45%, 40%)`;
-    if(id==='G') return `translate(45%, 20%)`;
-    if(id==='Y') return `translate(20%, 45%)`;
-    if(id==='B') return `translate(65%, 45%)`;
-    return 'translate(50%,50%)';
+/* Move to Win Area*/
+function sendToWinArea(cValue, pName, color) {
+  $("#" + color + "-win-pawn-box").append(`<div class="${cValue}"></div>`);
+  updateWinAreaCss(pName, color);
+}
+
+function updateWinAreaCss(pName, color) {
+  let x = null;
+  let y = null;
+  const winAreaPxPY = [
+    [[380, 380]],
+    [
+      [380, 380],
+      [305, 305],
+    ],
+    [
+      [380, 380],
+      [230, 380],
+      [380, 230],
+    ],
+    [
+      [380, 380],
+      [230, 380],
+      [305, 305],
+      [380, 230],
+    ],
+  ];
+  let i = 0;
+  let rotateValue = getRotateValue(color);
+  let winAreaLength = players[pName].winArea.length;
+  for (const classValue of players[pName].winArea) {
+    x = winAreaPxPY[winAreaLength - 1][i][0];
+    y = winAreaPxPY[winAreaLength - 1][i][1];
+    i++;
+    $("." + classValue).css({
+      transform: `translate(${x}%, ${y}%) rotate(${rotateValue})`,
+    });
   }
+}
 
-  function checkCutOrHome(player, pawnIdx){
-    const pawn = player.pawns[pawnIdx];
-    if(pawn.pos < 0 || pawn.home) return;
-    const here = pawn.pos;
+/* Winning Badge */
+function updateWinningOrder(pName) {
+  if (players[pName].winArea.length == 4) {
+    winningOrder.push(pName);
+  }
+}
 
-    // Find opponent pawns on same cell (and not safe)
-    if(State.safeCells.has(here)) return;
+function showWinningBadge() {
+  if (winningOrder.length > 0) {
+    let idValue = winningOrder[winningOrder.length - 1];
+    let url = getBadgeImage(winningOrder.length - 1);
+    $("#" + idValue).append(
+      `<div class="badge-box" style="background-image: ${url};"></div>`
+    );
+  }
+}
 
-    for(const op of State.players){
-      if(op.id === player.id) continue;
-      for(const [i,opPawn] of op.pawns.entries()){
-        if(opPawn.pos === here){
-          // Cut opponent: send to base
-          opPawn.pos = -1;
-          opPawn.home = false;
-          updatePawnPosition(op, i);
-          addCutScore(player.id);
-          playSfx('cut');
-          // After cut, current player gets an extra immediate bonus of +1 score already added
+function getBadgeImage(winNo) {
+  let imageName = null;
+
+  (winNo == 0 && (imageName = "win1")) ||
+    (winNo == 1 && (imageName = "win2")) ||
+    (winNo == 2 && (imageName = "win3"));
+
+  return `url(../images/${imageName}.png)`;
+}
+
+/* cut the pawn */
+
+function cutPawn(noInId, moveingClassValue) {
+  if (players[playerName].outArea.includes(moveingClassValue)) {
+    if ([1, 48, 9, 22, 35, 14, 27, 40].includes(noInId)) {
+      return;
+    } else {
+      let colorInClass = getColorFromValue(moveingClassValue);
+      let targetClass = null;
+      for (const cValve of outAreaPos[noInId]) {
+        if (colorInClass != getColorFromValue(cValve)) {
+          targetClass = cValve;
         }
       }
+      if (targetClass != null) {
+        $("." + targetClass).remove();
+        if (sound == true) {
+          cutAudio.play();
+        }
+        colorInClass = getColorFromValue(targetClass);
+        let pName = colorInClass + "Player";
+        removeFromArea(targetClass, pName, "outArea");
+        addToArea(targetClass, pName, "inArea");
+        removeFromOutAreaPos(noInId, targetClass);
+        let noInClass = getNoFromValue(targetClass);
+        $(`#in-${colorInClass}-${noInClass}`).append(
+          `<div class='${colorInClass}-pawn${noInClass}'></div>`
+        );
+        cut = true;
+        getUpdatedWHoutAreaPos(noInId);
+      }
+    }
+  } else {
+    return;
+  }
+}
+
+/* start game */
+function startGame() {
+  if (noOfPlayer == 2) {
+    // For 2P mode we init all four colors but UI tells who controls which colors.
+    // Player1 controls Red + Green, Player2 controls Yellow + Blue (visual mapping only).
+    setPawn("r", "g", "y", "b");
+  } else if (noOfPlayer == 3) {
+    setPawn("r", "g", "y");
+  } else {
+    setPawn("r", "g", "y", "b");
+  }
+  $("main").css("display", "block");
+  nextPlayer();
+}
+function setPawn(...color) {
+  for (const colorName of color) {
+    players[colorName + "Player"].inArea = [
+      colorName + "-pawn1",
+      colorName + "-pawn2",
+      colorName + "-pawn3",
+      colorName + "-pawn4",
+    ];
+    for (i = 1; i <= 4; i++)
+      $(`#in-${colorName}-${i}`).append(
+        `<div class='${colorName}-pawn${i}'></div>`
+      );
+  }
+}
+$("#twoPlayer").click(function () {
+  $(".selected").removeClass("selected");
+  $("#twoPlayer").addClass("selected");
+  noOfPlayer = 2;
+});
+$("#threePlayer").click(function () {
+  $(".selected").removeClass("selected");
+  $("#threePlayer").addClass("selected");
+  noOfPlayer = 3;
+});
+$("#fourPlayer").click(function () {
+  $(".selected").removeClass("selected");
+  $("#fourPlayer").addClass("selected");
+  noOfPlayer = 4;
+});
+
+$("#startGame").click(function () {
+  $("#home-container").css("display", "none");
+  startGame();
+});
+
+/* restart Game */
+
+function resetPawn(...color) {
+  for (const colorName of color) {
+    for (let i = 1; i <= 4; i++) {
+      $(`.${colorName}-pawn${i}`).remove();
     }
   }
+}
 
-  // ---------- Score ----------
-  const Score = {
-    R: { score:0, cuts:0, homes:0 },
-    G: { score:0, cuts:0, homes:0 },
-    Y: { score:0, cuts:0, homes:0 },
-    B: { score:0, cuts:0, homes:0 },
+function restartGame() {
+  $("#home-container").css("display", "block");
+  $("main").css("display", "none");
+  $("." + "badge-box").remove();
+  if (noOfPlayer == 2) {
+    resetPawn("r", "g", "y", "b");
+  } else if (noOfPlayer == 3) {
+    resetPawn("r", "g", "y");
+  } else {
+    resetPawn("r", "g", "y", "b");
+  }
+  $(diceBoxId).removeClass("startDiceRoll");
+  $(diceBoxId).removeClass("showDice");
+  $(diceBoxId).off();
+  players = {
+    rPlayer: new Player("out1", "out51"),
+    gPlayer: new Player("out14", "out12"),
+    yPlayer: new Player("out27", "out25"),
+    bPlayer: new Player("out40", "out38"),
   };
+  outAreaPos = new Position(52);
+  playerNo = 0; // (red = 1, green = 2, yellow = 3, blue = 4)
+  playerName = null; // store defult playerName
+  diceBoxId = null; // store id value of dice box
+  preDiceBoxId = null; // store id value of previou diceBoxId
+  rndmNo = null; // generate rndmNo after dice is roll
+  countSix = 0;
+  cut = false;
+  pass = false;
+  flag = false;
+  winningOrder = [];
+}
 
-  function addCutScore(id){
-    Score[id].cuts += 1;
-    Score[id].score += 1; // +1 per cut
+$("#restart").click(function () {
+  $("#alertBox").css("display", "block");
+});
+
+$("#ok").click(function () {
+  restartGame();
+  $("#alertBox").css("display", "none");
+});
+
+$("#cancel").click(function () {
+  $("#alertBox").css("display", "none");
+});
+
+/* Sound Settings */
+
+function soundSettings() {
+  if (sound == true) {
+    sound = false;
+  } else {
+    sound = true;
   }
-  function addHomeScore(id){
-    Score[id].homes += 1;
-    Score[id].score += 5; // +5 per home
+}
+
+$("#sound").click(function () {
+  soundSettings();
+  if (sound == true) {
+    $("#sound").css("background-image", "url(../images/sound-on.svg)");
+  } else {
+    $("#sound").css("background-image", "url(../images/sound-off.svg)");
   }
+});
 
-  function updateScoreUI(){
-    scoreEl.R.textContent = Score.R.score;
-    scoreEl.G.textContent = Score.G.score;
-    scoreEl.Y.textContent = Score.Y.score;
-    scoreEl.B.textContent = Score.B.score;
+/* fullsreen */
 
-    scoreEl.cutR.textContent = Score.R.cuts;
-    scoreEl.cutG.textContent = Score.G.cuts;
-    scoreEl.cutY.textContent = Score.Y.cuts;
-    scoreEl.cutB.textContent = Score.B.cuts;
-
-    scoreEl.homeR.textContent = Score.R.homes;
-    scoreEl.homeG.textContent = Score.G.homes;
-    scoreEl.homeY.textContent = Score.Y.homes;
-    scoreEl.homeB.textContent = Score.B.homes;
-
-    // Team sums
-    const ry = Score.R.score + Score.Y.score;
-    const gb = Score.G.score + Score.B.score;
-    scoreEl.teamRY.textContent = ry;
-    scoreEl.teamGB.textContent = gb;
+let elem = document.documentElement;
+function openFullscreen() {
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  } else if (elem.mozRequestFullScreen) { /* Firefox */
+    elem.mozRequestFullScreen();
+  } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) { /* IE/Edge */
+    elem.msRequestFullscreen();
   }
+  $("#fullscreen").css("display", "none");
+  $("#exitfullscreen").css("display", "inline-block");
+}
 
-  // ---------- Helpers ----------
-  function shake(el){
-    el.style.transform += ' translateX(0)'; // ensure property exists
-    el.classList.add('shake');
-    setTimeout(()=> el.classList.remove('shake'), 320);
+function closeFullscreen() {
+  if (document.exitFullscreen) {
+    document.exitFullscreen();
+  } else if (document.mozCancelFullScreen) {
+    document.mozCancelFullScreen();
+  } else if (document.webkitExitFullscreen) {
+    document.webkitExitFullscreen();
+  } else if (document.msExitFullscreen) {
+    document.msExitFullscreen();
   }
+   $("#exitfullscreen").css("display", "none");
+   $("#fullscreen").css("display", "inline-block");
+}
 
-  // Simple CSS helper for shake
-  const style = document.createElement('style');
-  style.textContent = `
-  .shake{animation:shake .32s}
-  @keyframes shake{
-    0%{transform:translateX(0)}
-    25%{transform:translateX(-4px)}
-    50%{transform:translateX(4px)}
-    75%{transform:translateX(-2px)}
-    100%{transform:translateX(0)}
-  }`;
-  document.head.appendChild(style);
-
-  // Starting index per color (simplified distinct offsets)
-  function entryIndex(id){
-    if(id==='R') return 0;
-    if(id==='G') return 13;
-    if(id==='Y') return 26;
-    if(id==='B') return 39;
-    return 0;
+document.addEventListener("fullscreenchange", (event) => {
+  if (document.fullscreenElement) {
+    $("#fullscreen").css("display", "none");
+    $("#exitfullscreen").css("display", "inline-block");
+  } else {
+    $("#exitfullscreen").css("display", "none");
+    $("#fullscreen").css("display", "inline-block");
   }
+});
 
-  // ---------- Resize observer to keep pawns centered on cells after layout changes ----------
-  const ro = new ResizeObserver(()=>{
-    // Recompute displayed positions for all pawns on track
-    for(const p of State.players){
-      for(let i=0;i<4;i++){
-        const pawn = p.pawns[i];
-        if(pawn.pos >= 0) updatePawnPosition(p, i);
-        else {
-          pawn.el.style.transform = pawn.home ? homeTransform(p.id) : baseTransform(p.id, i);
-        }
-      }
-    }
-  });
-  ro.observe(boardEl);
+$("#fullscreen").click(function(){
+  openFullscreen();
+});
 
-  // ---------- Init ----------
-  startNewGame();
-
-  // ---------- Team Mode behavior ----------
-  // For team mode we keep normal turn order but you can visually see team sums on the scoreboard.
-  modeSelect.addEventListener('change', ()=>{
-    // No special turn logic change; team sums already computed in updateScoreUI.
-  });
-
-})();
+$("#exitfullscreen").click(function(){
+  closeFullscreen();
+});
